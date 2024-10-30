@@ -1,0 +1,12 @@
+{
+  "name": "basic-example",
+  "version": "1.0.0",
+  "type": "module",
+  "src": "src/index.ts",
+  "dependencies": {
+    "fastify-file-router": "*",
+    "fastify": "^5.0.0"
+  },
+  "devDependencies": {
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "types"]
+      }
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["tsc"]
+      },
+      "cache": true
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^dev"],
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["tsc --watch"],
+        "parallel": true
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": ["tsc --noEmit"],
+        "parallel": true
+      }
+    }
+  }
+}

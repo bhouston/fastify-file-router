@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src"],
+  "compilerOptions": {
+    "incremental": false,
+    "sourceMap": false,
+    "declaration": false,
+    "esModuleInterop": false,
+    "allowImportingTsExtensions": true,
+
+    "noEmit": true
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@web3dsurvey/monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nx run-many -t build",
+    "typecheck": "nx run-many -t typecheck",
+    "dev": "nx run-many -t dev",
+    "start": "nx run-many -t start",
+    "clean": "rm -rf .nx node_modules packages/*/node_modules packages/*/dist packages/*/build",
+    "format": "eslint \"{apps,packages}/**/src/**/*.{js,ts,tsx,json}\" --fix && prettier \"{apps,packages}/**/src/**/*.{js,ts,tsx,json}\" --check --write",
+    "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build",
+    "gcloud-setup": "gcloud auth application-default login && gcloud config set account \"neuralsoft@gmail.com\" && gcloud config set project web3dsurvey && gcloud config set run/region us-central1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@typescript-eslint/eslint-plugin": "^5.59.11",
+    "eslint": "^8.42.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-simple-import-sort": "^10.0.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
+    "nx": "^19.4",
+    "prettier": "^2.8.8",
+    "typescript": "^5"
+  },
+  "workspaces": [
+    "packages/*",
+    "demos/*"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "fastify-file-router",
+  "version": "1.0.0",
+  "type": "module",
+  "src": "src/index.ts",
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "fastify-plugin": "^5.0.1",
+    "node-mocks-http": "^1.16.1"
+  },
+  "peerDependencies": {
+    "fastify": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.4"
+  }
+}
