@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "src": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "fastify": "^5.0.0",
     "fastify-plugin": "^5.0.1",

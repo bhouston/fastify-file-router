@@ -32,7 +32,7 @@ const validMethods = ['delete', 'get', 'head', 'patch', 'post', 'put'];
 const methodRegex = new RegExp(`^(${validMethods.join('|')})(\\..+)?$`);
 const segmentRegex = /^[a-zA-Z0-9$]+$/;
 
-export const fileRoutes = fp<FastifyFileRouterOptions>(
+export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
   async (
     fastify,
     {

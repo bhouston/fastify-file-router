@@ -1,23 +1,15 @@
-import cors from '@fastify/cors';
 import Fastify from 'fastify';
-
-import { recordStats } from './routes/api/stats/index.ts';
+import { fastifyFileRouter } from 'fastify-file-router';
 
 const app = Fastify({
   logger: true,
   trustProxy: true
 });
 
-await app.register(cors, {
-  origin: '*',
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+app.register(fastifyFileRouter, {
+  apiBase: '/api',
+  routesDir: './src/routes'
 });
-
-// API routes
-app.get('/api/stats', recordStats);
-app.post('/api/stats', recordStats);
-//app.options('/*', corsHandler);
 
 // https://fastify.dev/docs/latest/Guides/Serverless/#google-cloud-run
 // Google Cloud Run will set this environment variable for you, so
