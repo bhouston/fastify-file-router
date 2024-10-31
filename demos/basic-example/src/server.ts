@@ -7,8 +7,9 @@ const app = Fastify({
 });
 
 app.register(fastifyFileRouter, {
-  apiBase: '/api',
-  routesDir: './src/routes'
+  apiBase: '/',
+  routesDir: './src/routes',
+  routeFileExtension: '.ts'
 });
 
 // https://fastify.dev/docs/latest/Guides/Serverless/#google-cloud-run

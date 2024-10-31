@@ -4,19 +4,19 @@ import type { LogLevel } from 'fastify';
 import fp from 'fastify-plugin';
 import fs from 'fs/promises';
 
-import type { RouteModule } from './types';
+import type { RouteModule } from './types.js';
 
 export type FastifyFileRouterOptions = {
   /**
    * The base path for the routes.
    * @default "/"
    */
-  basename?: string;
+  apiBase?: string;
   /**
    * The directory where the routes are located.
    * @default "./routes"
    */
-  routeDirectory?: string;
+  routesDir?: string;
   /**
    * The file extension for the route files.
    * @default ".js"
@@ -36,36 +36,59 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
   async (
     fastify,
     {
-      basename = '/',
-      routeDirectory = './src/routes',
+      apiBase = '/',
+      routesDir = './src/routes',
       routeFileExtension = '.js',
       logLevel = 'info'
     }: FastifyFileRouterOptions
   ) => {
     const cwd = process.env.REMIX_ROOT ?? process.cwd();
 
-    if (!(await fs.lstat(routeDirectory)).isDirectory()) {
-      throw new Error(`Route directory ${routeDirectory} does not exist.`);
+    const routesDirPath = path.resolve(cwd, routesDir);
+    if (!(await fs.lstat(routesDirPath)).isDirectory()) {
+      throw new Error(`Route directory ${routesDir} does not exist.`);
     }
 
-    async function registerRoutes(dir: string, basePath = '') {
+    async function registerRoutes(dir: string) {
       const files = await fs.readdir(dir);
+
+      const baseSegments = dir
+        .replace(routesDirPath, '')
+        .split('/')
+        .filter(Boolean);
       await Promise.all(
         files.map(async (file) => {
           const fullPath = path.join(dir, file);
+
           const stat = await fs.stat(fullPath);
           if (stat.isDirectory()) {
-            await registerRoutes(fullPath, `${basePath}/${file}`);
+            await registerRoutes(fullPath);
             return;
           }
 
-          const [method, ...segments] = file.split('.');
+          const segments = file.split('.');
+          if (segments.length < 2) {
+            throw new Error(
+              `Invalid file name "${file}" in file ${fullPath}, must have at least 2 segments separated by a dot`
+            );
+          }
+          const fileExtension = segments.pop();
+          if (fileExtension !== routeFileExtension.slice(1)) {
+            throw new Error(
+              `Invalid file extension "${fileExtension}" in file ${fullPath}, expected "${routeFileExtension}"`
+            );
+          }
+
+          // get next to last segement as method
+          const methodSegment = segments.pop();
 
           // Validate method
-          if (method && !methodRegex.test(method)) {
-            throw new Error(`Invalid method "${method}" in file ${fullPath}`);
+          if (methodSegment && !methodRegex.test(methodSegment)) {
+            throw new Error(
+              `Invalid method "${methodSegment}" in file ${fullPath}`
+            );
           }
-          const typedMethod = method as
+          const typedMethod = methodSegment as
             | 'delete'
             | 'get'
             | 'head'
@@ -73,21 +96,31 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
             | 'post'
             | 'put';
 
-          // Validate segments
-          for (const segment of segments) {
+          //
+
+          // Validate remaining segments
+          for (const segment of [...baseSegments, ...segments]) {
             if (!segmentRegex.test(segment)) {
               throw new Error(
                 `Invalid segment "${segment}" in file ${fullPath}`
               );
             }
           }
-          const routePath = segments
+          const routePath = [...baseSegments, ...segments]
             .map((segment) =>
               segment.startsWith('$') ? `:${segment.slice(1)}` : segment
             )
             .join('/');
           const handlerModule = (await import(fullPath)) as RouteModule;
-          const url = `${basePath}/${routePath}`;
+          let url = routePath;
+          // add apiBase if present
+          if (apiBase !== '/') {
+            url = `${apiBase}/${url}`;
+          }
+          // add preceeding '/' if missing
+          if (!url.startsWith('/')) {
+            url = `/${url}`;
+          }
           // Validate handler exports
           if (typeof handlerModule.default !== 'function') {
             throw new Error(
@@ -103,7 +136,9 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
             );
           }
           fastify.log[logLevel](
-            `Registering route ${typedMethod.toUpperCase()} ${url}`
+            `Registering route ${typedMethod.toUpperCase()} ${url} ${
+              handlerModule.schema ? '(with schema)' : ''
+            }`
           );
           if (handlerModule.schema) {
             fastify[typedMethod](
@@ -118,11 +153,11 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
       );
     }
 
-    await registerRoutes(routeDirectory);
+    await registerRoutes(routesDirPath);
   },
   {
     // replaced with the package name during build
-    name: process.env.__PACKAGE_NAME__,
-    fastify: process.env.__FASTIFY_VERSION__
+    name: 'fastify-file-router',
+    fastify: '5.x'
   }
 );

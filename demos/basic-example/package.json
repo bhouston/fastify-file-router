@@ -4,9 +4,8 @@
   "type": "module",
   "src": "src/index.ts",
   "dependencies": {
+    "fastify": "^5.0.0",
     "fastify-file-router": "*",
-    "fastify": "^5.0.0"
-  },
-  "devDependencies": {
+    "json-schema-to-ts": "^3.1.1"
   }
 }
