@@ -1,4 +1,4 @@
-import type { RouteHandler } from 'fastify-file-router';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { FromSchema } from 'json-schema-to-ts';
 
 const bodySchema = {
@@ -16,13 +16,14 @@ export const schema = {
 
 type BodySchemaType = FromSchema<typeof bodySchema>;
 
-const routeHandler: RouteHandler = async (request, reply) => {
+export default async function handler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
   // get the request body
   const { email, password } = request.body as BodySchemaType;
   console.log({ email, password });
 
   // send a response to the client
   reply.status(201).send({ message: 'User created successfully' });
-};
-
-export default routeHandler;
+}

@@ -1,4 +1,5 @@
-import type { RouteHandler, RouteSchema } from 'fastify-file-router';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { RouteSchema } from 'fastify-file-router';
 import type { FromSchema } from 'json-schema-to-ts';
 
 // GET /api/users/$id
@@ -17,7 +18,10 @@ export const schema: RouteSchema = {
   params: ParamsSchema
 };
 
-const routeHandler: RouteHandler = async (request, reply) => {
+export default async function handler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
   const { id } = request.params as ParamsSchema;
   console.log({ id });
 
@@ -27,6 +31,4 @@ const routeHandler: RouteHandler = async (request, reply) => {
     name: 'John Doe',
     email: 'john.doe@microsoft.com'
   });
-};
-
-export default routeHandler;
+}

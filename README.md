@@ -33,7 +33,7 @@ You can use any combination of file names and directories. Both are valid. We us
 Inside each route handler file, you make the default export the route handler. Here is a simple example:
 
 ```ts
-// routes/api/healthcheck/get.ts
+// routes/api/health/get.ts
 
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -50,9 +50,6 @@ If you want to specify a schema, you can optionally export it as well:
 ```ts
 // routes/api.users.$id.get.ts
 
-import type { RouteHandler, RouteSchema } from 'fastify-file-router';
-import type { FromSchema } from 'json-schema-to-ts';
-
 const ParamsSchema = {
   type: 'object',
   properties: {
@@ -60,30 +57,31 @@ const ParamsSchema = {
   },
   required: ['id']
 } as const;
+
 type ParamsSchema = FromSchema<typeof ParamsSchema>;
 
 export const schema: RouteSchema = {
   params: ParamsSchema
 };
 
-const handler: RouteHandler = async (request, reply) => {
+export default async function handler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
   const { id } = request.params as ParamsSchema;
 
-  // send a response to the client
   reply.status(200).send({
     id,
     name: 'John Doe',
     email: 'john.doe@microsoft.com'
   });
-};
-
-export default handler;
+}
 ```
 
 The above will result in these routes being registered:
 
 ```
-GET /api/healthcheck
+GET /api/health
 POST /api/users
 GET /api/users/:id
 ```
