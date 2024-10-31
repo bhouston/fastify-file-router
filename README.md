@@ -20,7 +20,7 @@ fastify.register(fastifyFileRouter, {
 });
 ```
 
-You can use any combination of file names and directories. Both are valid. We use Remix-style conventions for interpreting filenames.
+You can use any combination of file names and directories. Both are valid. We use [Remix-style conventions](https://remix.run/docs/en/main/discussion/routes#conventional-route-configuration) for interpreting filenames.
 
 ```
 /routes
