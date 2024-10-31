@@ -6,7 +6,7 @@ const app = Fastify({
   trustProxy: true
 });
 
-app.register(fastifyFileRouter);
+await app.register(fastifyFileRouter);
 
 // https://fastify.dev/docs/latest/Guides/Serverless/#google-cloud-run
 // Google Cloud Run will set this environment variable for you, so
