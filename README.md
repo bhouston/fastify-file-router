@@ -6,6 +6,14 @@ This allows you to specify all of your server routes using either filenames or a
 
 Supports both JavaScript and TypeScript (on Node 22+.)
 
+## Installation
+
+_NOTE: This is an ESM-only package._
+
+```sh
+npm install fastify-file-router
+```
+
 ## Example
 
 You register the plugin like this:
