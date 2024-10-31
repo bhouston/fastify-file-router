@@ -13,14 +13,10 @@ You register the plugin like this:
 ```ts
 const fastify = Fastify();
 
-fastify.register(fastifyFileRouter, {
-  mount: '/',
-  routesDir: './src/routes',
-  extension: '.ts' // *.js if not using typescript
-});
+fastify.register(fastifyFileRouter);
 ```
 
-You can use any combination of file names and directories. Both are valid. We use [Remix-style conventions](https://remix.run/docs/en/main/discussion/routes#conventional-route-configuration) for interpreting filenames.
+You can use any combination of file names and directories. Both are valid. We use [Remix-style conventions](https://remix.run/docs/en/main/file-conventions/routes) for interpreting filenames.
 
 ```
 /routes
@@ -39,7 +35,7 @@ Inside each route handler file, you make the default export the route handler. H
 
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-export default async function routeHandler(
+export default async function handler(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
@@ -68,7 +64,7 @@ export const schema: RouteSchema = {
   params: ParamsSchema
 };
 
-const routeHandler: RouteHandler = async (request, reply) => {
+const handler: RouteHandler = async (request, reply) => {
   const { id } = request.params as ParamsSchema;
 
   // send a response to the client
@@ -79,7 +75,7 @@ const routeHandler: RouteHandler = async (request, reply) => {
   });
 };
 
-export default routeHandler;
+export default handler;
 ```
 
 The above will result in these routes being registered:

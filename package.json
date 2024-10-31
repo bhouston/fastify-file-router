@@ -9,8 +9,7 @@
     "start": "nx run-many -t start",
     "clean": "rm -rf .nx node_modules packages/*/node_modules packages/*/dist packages/*/build",
     "format": "eslint \"{apps,packages}/**/src/**/*.{js,ts,tsx,json}\" --fix && prettier \"{apps,packages}/**/src/**/*.{js,ts,tsx,json}\" --check --write",
-    "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build",
-    "gcloud-setup": "gcloud auth application-default login && gcloud config set account \"neuralsoft@gmail.com\" && gcloud config set project web3dsurvey && gcloud config set run/region us-central1"
+    "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build"
   },
   "devDependencies": {
     "@types/node": "^20",

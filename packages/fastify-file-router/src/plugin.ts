@@ -1,3 +1,4 @@
+import type { Stats } from 'node:fs';
 import path from 'node:path';
 
 import type { LogLevel } from 'fastify';
@@ -16,12 +17,12 @@ export type FastifyFileRouterOptions = {
    * The directory where the routes are located.
    * @default "./routes"
    */
-  routesDir?: string;
+  routesDirs?: string[];
   /**
    * The file extension for the route files.
    * @default ".js"
    */
-  extension?: string;
+  extensions?: string[];
   /**
    * Verbosity level for the plugin.
    */
@@ -37,28 +38,26 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
     fastify,
     {
       mount = '/',
-      routesDir = './src/routes',
-      extension = '.js',
+      routesDirs = ['./routes', './src/routes'],
+      extensions = ['.js', '.ts', '.jsx', '.tsx'],
       logLevel = 'info'
     }: FastifyFileRouterOptions
   ) => {
     const cwd = process.env.REMIX_ROOT ?? process.cwd();
 
-    const routesDirPath = path.resolve(cwd, routesDir);
-    if (!(await fs.lstat(routesDirPath)).isDirectory()) {
-      throw new Error(`Route directory ${routesDir} does not exist.`);
-    }
+    extensions.map((extension) => {
+      if (!extension.startsWith('.')) {
+        throw new Error(
+          `Invalid extension "${extension}", must start with a dot`
+        );
+      }
+    });
 
-    if (!extension.startsWith('.')) {
-      throw new Error(
-        `Invalid extension "${extension}", must start with a dot`
-      );
-    }
-    async function registerRoutes(dir: string) {
+    async function registerRoutes(dir: string, baseRootDir: string) {
       const files = await fs.readdir(dir);
 
       const baseSegments = dir
-        .replace(routesDirPath, '')
+        .replace(baseRootDir, '')
         .split('/')
         .filter(Boolean);
       await Promise.all(
@@ -67,7 +66,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
 
           const stat = await fs.stat(fullPath);
           if (stat.isDirectory()) {
-            await registerRoutes(fullPath);
+            await registerRoutes(fullPath, baseRootDir);
             return;
           }
 
@@ -77,10 +76,12 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
               `Invalid file name "${file}" in file ${fullPath}, must have at least 2 segments separated by a dot`
             );
           }
-          const fileExtension = segments.pop();
-          if (fileExtension !== extension.slice(1)) {
+          const fileExtension = `.${segments.pop()}`;
+          if (!extensions.includes(fileExtension)) {
             throw new Error(
-              `Invalid file extension "${fileExtension}" in file ${fullPath}, expected "${routeFileExtension}"`
+              `Invalid file extension "${fileExtension}" in file ${fullPath}, expected one of [${extensions.join(
+                ','
+              )}]`
             );
           }
 
@@ -158,7 +159,29 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
       );
     }
 
-    await registerRoutes(routesDirPath);
+    let numberOfValidRouteDirs = 0;
+    await Promise.all(
+      routesDirs.map(async (routesDir) => {
+        const routesDirPath = path.resolve(cwd, routesDir);
+        let stats: Stats;
+        try {
+          stats = await fs.lstat(routesDirPath);
+        } catch (_e) {
+          return;
+        }
+        if (stats.isDirectory()) {
+          numberOfValidRouteDirs++;
+          await registerRoutes(routesDirPath, routesDirPath);
+        }
+      })
+    );
+    if (numberOfValidRouteDirs === 0) {
+      throw new Error(
+        `None of routesDirs, [${routesDirs.join(
+          ', '
+        )}], were valid directories.`
+      );
+    }
   },
   {
     // replaced with the package name during build
