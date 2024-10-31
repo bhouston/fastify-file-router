@@ -1,16 +1,11 @@
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest, FastifySchema } from 'fastify';
 
 // types.ts
 export interface RouteHandler {
   (request: FastifyRequest, reply: FastifyReply): Promise<void>;
 }
 
-export type RouteSchema = {
-  querystring?: object;
-  body?: object;
-  params?: object;
-  response?: object;
-};
+export type RouteSchema = FastifySchema;
 
 export type TypedRouteSchema<
   Query = object,
