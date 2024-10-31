@@ -9,25 +9,34 @@ import type { RouteModule } from './types.js';
 
 export type FastifyFileRouterOptions = {
   /**
-   * The base path for the routes.
+   * Where the routes should be mounted on the server.
    * @default "/"
    */
-  mount?: string;
+  mount: string;
   /**
-   * The directory where the routes are located.
-   * @default "./routes"
+   * The local directory where the routes are located relative to the build root folder.
+   * @default ["./routes", "./src/routes"]
    */
-  routesDirs?: string[];
+  routesDirs: string[];
+  /**
+   * The root folder of the source code that should be loaded. If you are transpiling your source code,
+   * you should set this to the build output directory, e.g. 'dist' or 'build'.
+   * @default '.' (current working directory)
+   */
+  buildRoot: string;
   /**
    * The file extension for the route files.
-   * @default ".js"
+   * @default [".js", ".ts", ".jsx", ".tsx"]
    */
-  extensions?: string[];
+  extensions: string[];
   /**
    * Verbosity level for the plugin.
+   * @default "info"
    */
-  logLevel?: LogLevel;
+  logLevel: LogLevel;
 };
+
+type ValidMethod = 'delete' | 'get' | 'head' | 'patch' | 'post' | 'put';
 
 const validMethods = ['delete', 'get', 'head', 'patch', 'post', 'put'];
 const methodRegex = new RegExp(`^(${validMethods.join('|')})(\\..+)?$`);
@@ -39,6 +48,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
     {
       mount = '/',
       routesDirs = ['./routes', './src/routes'],
+      buildRoot = '.',
       extensions = ['.js', '.ts', '.jsx', '.tsx'],
       logLevel = 'info'
     }: FastifyFileRouterOptions
@@ -85,22 +95,15 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
             );
           }
 
-          // get next to last segement as method
+          // get next to last segment as method
           const methodSegment = segments.pop();
-
           // Validate method
           if (methodSegment && !methodRegex.test(methodSegment)) {
             throw new Error(
               `Invalid method "${methodSegment}" in file ${fullPath}`
             );
           }
-          const typedMethod = methodSegment as
-            | 'delete'
-            | 'get'
-            | 'head'
-            | 'patch'
-            | 'post'
-            | 'put';
+          const typedMethod = methodSegment as ValidMethod;
 
           //
 
@@ -113,9 +116,15 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
             }
           }
           const routePath = [...baseSegments, ...segments]
-            .map((segment) =>
-              segment.startsWith('$') ? `:${segment.slice(1)}` : segment
-            )
+            .map((segment) => {
+              if (segment.startsWith('$')) {
+                if (segment.length === 1) {
+                  return '*';
+                }
+                return `:${segment.slice(1)}`;
+              }
+              return segment;
+            })
             .join('/');
           const handlerModule = (await import(fullPath)) as RouteModule;
           let url = routePath;
@@ -162,16 +171,20 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
     let numberOfValidRouteDirs = 0;
     await Promise.all(
       routesDirs.map(async (routesDir) => {
-        const routesDirPath = path.resolve(cwd, routesDir);
+        const sourceRouteDir = path.join(buildRoot ?? '', routesDir);
+        const absoluteSourceRoutesDir = path.resolve(cwd, sourceRouteDir);
         let stats: Stats;
         try {
-          stats = await fs.lstat(routesDirPath);
+          stats = await fs.lstat(absoluteSourceRoutesDir);
         } catch (_e) {
           return;
         }
         if (stats.isDirectory()) {
           numberOfValidRouteDirs++;
-          await registerRoutes(routesDirPath, routesDirPath);
+          await registerRoutes(
+            absoluteSourceRoutesDir,
+            absoluteSourceRoutesDir
+          );
         }
       })
     );
