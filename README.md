@@ -16,7 +16,7 @@ const fastify = Fastify();
 fastify.register(fastifyFileRouter, {
   apiBase: '/',
   routesDir: './src/routes',
-  routeFileExtension: '.ts'
+  extension: '.ts' // *.js if not using typescript
 });
 ```
 
@@ -26,10 +26,10 @@ You can use any combination of file names and directories. Both are valid. We us
 /routes
 ├── api
 │   ├── healthcheck
-│   │   └── get.js
+│   │   └── get.ts
 │   └── users
-│       └── post.js
-└── api.users.$id.get.js
+│       └── post.ts
+└── api.users.$id.get.ts
 ```
 
 Inside each route handler file, you make the default export the route handler. Here is a simple example:

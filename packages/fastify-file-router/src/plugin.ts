@@ -21,7 +21,7 @@ export type FastifyFileRouterOptions = {
    * The file extension for the route files.
    * @default ".js"
    */
-  routeFileExtension?: string;
+  extension?: string;
   /**
    * Verbosity level for the plugin.
    */
@@ -38,7 +38,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
     {
       apiBase = '/',
       routesDir = './src/routes',
-      routeFileExtension = '.js',
+      extension = '.js',
       logLevel = 'info'
     }: FastifyFileRouterOptions
   ) => {
@@ -73,7 +73,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
             );
           }
           const fileExtension = segments.pop();
-          if (fileExtension !== routeFileExtension.slice(1)) {
+          if (fileExtension !== extension.slice(1)) {
             throw new Error(
               `Invalid file extension "${fileExtension}" in file ${fullPath}, expected "${routeFileExtension}"`
             );
