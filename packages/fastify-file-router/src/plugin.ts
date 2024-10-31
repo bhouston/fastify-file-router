@@ -38,7 +38,7 @@ export type FastifyFileRouterOptions = {
 
 const validMethods = ['delete', 'get', 'head', 'patch', 'post', 'put'];
 const methodRegex = new RegExp(`^(${validMethods.join('|')})(\\..+)?$`);
-const segmentRegex = /^[a-zA-Z0-9$]+$/;
+const segmentRegex = /^[$[]?.*[\]]?$/;
 
 export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
   async (
@@ -113,13 +113,22 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
               );
             }
           }
+          // regex that matches a leading $ and captures the rest as the named capture group "param", regardless of what character it is
+          const remixParamRegex = /^\$(?<param>.*)$/;
+          // regex that matches both a leading [ and trailing ], capturing the rest as the named capture group "param", regardless of what character it is
+          const nextParamRegex = /^\[(?<param>.*)\]$/;
+
           const routePath = [...baseSegments, ...segments]
             .map((segment) => {
-              if (segment.startsWith('$')) {
-                if (segment.length === 1) {
+              const matchResult =
+                segment.match(remixParamRegex) ?? segment.match(nextParamRegex);
+              if (matchResult && matchResult.groups) {
+                const param = matchResult.groups['param'];
+                if (param && param.length > 0) {
+                  return `:${param}`;
+                } else {
                   return '*';
                 }
-                return `:${segment.slice(1)}`;
               }
               return segment;
             })

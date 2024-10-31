@@ -2,14 +2,14 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { RouteSchema } from 'fastify-file-router';
 import type { FromSchema } from 'json-schema-to-ts';
 
-// GET /api/users/$id
+// GET /api/files/$id
 
 const ParamsSchema = {
   type: 'object',
   properties: {
-    ['*']: { type: 'string' }
+    id: { type: 'string' }
   },
-  required: ['*']
+  required: ['id']
 } as const;
 
 type ParamsSchema = FromSchema<typeof ParamsSchema>;
@@ -23,5 +23,11 @@ export default async function handler(
   reply: FastifyReply
 ) {
   const params = request.params as ParamsSchema;
-  reply.status(200).send({ message: `Wildcard value is ${params['*']}` });
+  const { id } = params;
+  reply.status(200).send({
+    id,
+    mimeType: 'application/octet-stream',
+    name: 'example.txt',
+    size: 1024
+  });
 }

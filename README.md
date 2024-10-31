@@ -24,18 +24,19 @@ const fastify = Fastify();
 fastify.register(fastifyFileRouter);
 ```
 
-You can use any combination of file names and directories. Both are valid. We use [Remix-style conventions](https://remix.run/docs/en/main/file-conventions/routes) for interpreting filenames.
+You can use any combination of file names and directories. We support both [NextJS-style conventions]() and [Remix-style conventions](https://remix.run/docs/en/main/file-conventions/routes) for interpreting filenames.
 
 ```
 /routes
 ├── api
 │   ├── files
-│   │   └── $.get.ts // wildcard, *, parameter
+│   ├── ├── hashes.$.get.ts // wildcard, *, parameter, Remix-style
+│   │   └── [id].get.ts // named parameter id, NextJS-style
 │   ├── health
 │   │   └── get.ts
 │   └── users
 │       └── post.ts
-└── api.users.$id.get.ts // named parameter id
+└── api.users.$id.get.ts // named parameter id, Remix-style
 ```
 
 Inside each route handler file, you make the default export the route handler. Here is a simple example:
