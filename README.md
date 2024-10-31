@@ -37,13 +37,14 @@ Inside each route handler file, you make the default export the route handler. H
 ```ts
 // routes/api/healthcheck/get.ts
 
-import type { RouteHandler } from 'fastify-file-router';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
-const routeHandler: RouteHandler = async (request, reply) => {
+export default async function routeHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
   reply.status(204).send();
-};
-
-export default routeHandler;
+}
 ```
 
 If you want to specify a schema, you can optionally export it as well:

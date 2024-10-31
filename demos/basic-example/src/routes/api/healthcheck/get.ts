@@ -1,7 +1,8 @@
-import type { RouteHandler } from 'fastify-file-router';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
-const routeHandler: RouteHandler = async (request, reply) => {
+export default async function routeHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
   reply.status(204).send();
-};
-
-export default routeHandler;
+}
