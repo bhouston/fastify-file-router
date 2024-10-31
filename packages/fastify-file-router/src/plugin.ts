@@ -49,6 +49,11 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
       throw new Error(`Route directory ${routesDir} does not exist.`);
     }
 
+    if (!extension.startsWith('.')) {
+      throw new Error(
+        `Invalid extension "${extension}", must start with a dot`
+      );
+    }
     async function registerRoutes(dir: string) {
       const files = await fs.readdir(dir);
 
