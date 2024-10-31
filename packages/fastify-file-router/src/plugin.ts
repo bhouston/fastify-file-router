@@ -1,7 +1,7 @@
 import type { Stats } from 'node:fs';
 import path from 'node:path';
 
-import type { LogLevel } from 'fastify';
+import type { HTTPMethods, LogLevel } from 'fastify';
 import fp from 'fastify-plugin';
 import fs from 'fs/promises';
 
@@ -35,8 +35,6 @@ export type FastifyFileRouterOptions = {
    */
   logLevel: LogLevel;
 };
-
-type ValidMethod = 'delete' | 'get' | 'head' | 'patch' | 'post' | 'put';
 
 const validMethods = ['delete', 'get', 'head', 'patch', 'post', 'put'];
 const methodRegex = new RegExp(`^(${validMethods.join('|')})(\\..+)?$`);
@@ -103,7 +101,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
               `Invalid method "${methodSegment}" in file ${fullPath}`
             );
           }
-          const typedMethod = methodSegment as ValidMethod;
+          const typedMethod = methodSegment as HTTPMethods;
 
           //
 
@@ -155,15 +153,12 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
               handlerModule.schema ? '(with schema)' : ''
             }`
           );
-          if (handlerModule.schema) {
-            fastify[typedMethod](
-              url,
-              { schema: handlerModule.schema },
-              handlerModule.default
-            );
-          } else {
-            fastify[typedMethod](url, handlerModule.default);
-          }
+          fastify.route({
+            method: typedMethod,
+            url,
+            schema: handlerModule.schema,
+            handler: handlerModule.default
+          });
         })
       );
     }
