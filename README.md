@@ -97,7 +97,38 @@ POST /api/users
 GET /api/users/:id
 ```
 
-## Development
+## Plugin Options
+
+This plugin supports the following customizable options.
+
+**mount**
+
+- Specifies where the routes should be mounted on the server.
+- Default: "/"
+
+**routesDirs**
+
+- An array of local directories where the routes are located relative to the build root folder.
+- Default: ["./routes", "./src/routes"]
+
+**buildRoot**
+
+- The root folder of the source code that should be loaded. If you are transpiling your source code, you should set this to the build output directory, e.g., dist or build.
+- Default: "." (current working directory, assuming no transpilation)
+
+**extensions**
+
+- An array of file extensions for the route files.
+- Default: [".js", ".ts", ".jsx", ".tsx"]
+
+**logLevel**
+
+- The verbosity level for the plugin.
+- Default: "info"
+
+## Plugin Development (for Contributors only)
+
+If you want to contribute, just check out [this git project](https://github.com/bhouston/fastify-file-router) and run the following commands to get going:
 
 ```sh
 # install dependencies
@@ -108,4 +139,7 @@ npm run dev
 
 # build & start server
 npm run build && npm run start
+
+# publish the npm package
+npm run publish
 ```
