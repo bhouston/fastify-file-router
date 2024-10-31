@@ -7,6 +7,7 @@
     "typecheck": "nx run-many -t typecheck",
     "dev": "nx run-many -t dev",
     "start": "nx run-many -t start",
+    "publish": "nx run-many -t publish",
     "clean": "rm -rf .nx node_modules packages/*/node_modules packages/*/dist packages/*/build",
     "format": "eslint \"{apps,packages}/**/src/**/*.{js,ts,tsx,json}\" --fix && prettier \"{apps,packages}/**/src/**/*.{js,ts,tsx,json}\" --check --write",
     "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build"

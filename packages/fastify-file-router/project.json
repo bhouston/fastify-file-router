@@ -4,6 +4,25 @@
   "targets": {
     "build": {},
     "dev": {},
-    "typecheck": {}
+    "typecheck": {},
+    "publish": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "inputs": ["default"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": [
+          "rm -rf ./publish",
+          "mkdir ./publish",
+          "cp ./package.json ./publish/package.json",
+          "cp ../../LICENSE ./publish/LICENSE",
+          "cp ../../README.md ./publish/README.md",
+          "cp -r ./dist ./publish/dist",
+          "cp -r ./src ./publish/src",
+          "npm publish ./publish/ --access public"
+        ],
+        "parallel": false
+      }
+    }
   }
 }
