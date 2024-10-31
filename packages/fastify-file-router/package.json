@@ -1,6 +1,6 @@
 {
   "name": "fastify-file-router",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "type": "module",
   "src": "src/index.ts",
   "main": "dist/index.js",

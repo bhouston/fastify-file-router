@@ -1,6 +1,5 @@
 {
   "name": "basic-example",
-  "version": "1.0.0",
   "type": "module",
   "src": "src/index.ts",
   "dependencies": {
