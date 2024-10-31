@@ -16,7 +16,7 @@ npm install fastify-file-router
 
 ## Example
 
-You register the plugin like this:
+You register the plugin using its defaults or by specifying [additional options](#plugin-options):
 
 ```ts
 const fastify = Fastify();
@@ -104,27 +104,27 @@ This plugin supports the following customizable options.
 **mount**
 
 - Specifies where the routes should be mounted on the server.
-- Default: "/"
+- Default: `"/"`
 
 **routesDirs**
 
 - An array of local directories where the routes are located relative to the build root folder.
-- Default: ["./routes", "./src/routes"]
+- Default: `["./routes", "./src/routes"]`
 
 **buildRoot**
 
 - The root folder of the source code that should be loaded. If you are transpiling your source code, you should set this to the build output directory, e.g., dist or build.
-- Default: "." (current working directory, assuming no transpilation)
+- Default: `"."` (current working directory, assuming no transpilation)
 
 **extensions**
 
 - An array of file extensions for the route files.
-- Default: [".js", ".ts", ".jsx", ".tsx"]
+- Default: `[".js", ".ts", ".jsx", ".tsx"]`
 
 **logLevel**
 
 - The verbosity level for the plugin.
-- Default: "info"
+- Default: `"info"`
 
 ## Plugin Development (for Contributors only)
 
