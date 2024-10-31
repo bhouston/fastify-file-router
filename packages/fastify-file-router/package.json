@@ -39,5 +39,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.8.4"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   }
 }
