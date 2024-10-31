@@ -14,7 +14,7 @@ You register the plugin like this:
 const fastify = Fastify();
 
 fastify.register(fastifyFileRouter, {
-  apiBase: '/',
+  mount: '/',
   routesDir: './src/routes',
   extension: '.ts' // *.js if not using typescript
 });

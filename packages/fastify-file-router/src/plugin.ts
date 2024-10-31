@@ -11,7 +11,7 @@ export type FastifyFileRouterOptions = {
    * The base path for the routes.
    * @default "/"
    */
-  apiBase?: string;
+  mount?: string;
   /**
    * The directory where the routes are located.
    * @default "./routes"
@@ -36,7 +36,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
   async (
     fastify,
     {
-      apiBase = '/',
+      mount = '/',
       routesDir = './src/routes',
       extension = '.js',
       logLevel = 'info'
@@ -114,8 +114,8 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
           const handlerModule = (await import(fullPath)) as RouteModule;
           let url = routePath;
           // add apiBase if present
-          if (apiBase !== '/') {
-            url = `${apiBase}/${url}`;
+          if (mount !== '/') {
+            url = `${mount}/${url}`;
           }
           // add preceeding '/' if missing
           if (!url.startsWith('/')) {
