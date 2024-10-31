@@ -24,14 +24,14 @@ const fastify = Fastify();
 fastify.register(fastifyFileRouter);
 ```
 
-You can use any combination of file names and directories. We support both [NextJS-style conventions]() and [Remix-style conventions](https://remix.run/docs/en/main/file-conventions/routes) for interpreting filenames.
+You can use any combination of file names and directories. We support both [NextJS-style conventions](https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes) and [Remix-style conventions](https://remix.run/docs/en/main/file-conventions/routes) for interpreting filenames and directories.
 
 ```
 /routes
 ├── api
 │   ├── files
-│   ├── ├── hashes.$.get.ts // wildcard, *, parameter, Remix-style
-│   │   └── [id].get.ts // named parameter id, NextJS-style
+│   ├── ├── [id].get.ts // named parameter id, NextJS-style
+│   │   └── hashes.$.get.ts // wildcard, *, parameter, Remix-style
 │   ├── health
 │   │   └── get.ts
 │   └── users
@@ -90,6 +90,8 @@ export default async function handler(
 The above will result in these routes being registered:
 
 ```
+GET /api/files/:id
+GET /api/files/hashes/*
 GET /api/health
 POST /api/users
 GET /api/users/:id
