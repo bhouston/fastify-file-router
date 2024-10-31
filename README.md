@@ -21,11 +21,13 @@ You can use any combination of file names and directories. Both are valid. We us
 ```
 /routes
 ├── api
-│   ├── healthcheck
+│   ├── files
+│   │   └── $.get.ts // wildcard, *, parameter
+│   ├── health
 │   │   └── get.ts
 │   └── users
 │       └── post.ts
-└── api.users.$id.get.ts
+└── api.users.$id.get.ts // named parameter id
 ```
 
 Inside each route handler file, you make the default export the route handler. Here is a simple example:
