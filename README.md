@@ -155,9 +155,23 @@ npm run dev
 # build & start server
 npm run build && npm run start
 
+# prettify
+npm run format
+
+# eslint
+npm run lint
+
+# build and run tests
+npm run test
+
+# clean everything, should be like doing a fresh git checkout of the repo.
+npm run clean
+
 # publish the npm package
 npm run publish
 ```
+
+Underneath the hood, we are using [NX](https://nx.dev) to manage the monorepo and shared scripts.
 
 [npm]: https://img.shields.io/npm/v/fastify-file-router
 [npm-url]: https://www.npmjs.com/package/fastify-file-router
