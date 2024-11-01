@@ -31,14 +31,14 @@
   ],
   "dependencies": {
     "fastify": "^5.0.0",
-    "fastify-plugin": "^5.0.1",
-    "node-mocks-http": "^1.16.1"
+    "fastify-plugin": "^5.0.1"
   },
   "peerDependencies": {
     "fastify": "^5.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.8.4"
+    "@types/node": "^20",
+    "node-mocks-http": "^1.16.1"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
