@@ -24,13 +24,13 @@ const fastify = Fastify();
 fastify.register(fastifyFileRouter);
 ```
 
-You can use any combination of file names and directories. We support both [NextJS-style conventions](https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes) and [Remix-style conventions](https://remix.run/docs/en/main/file-conventions/routes) for interpreting filenames and directories.
+You can use any combination of file names and directories. We support either [NextJS](https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes) or [Remix](https://remix.run/docs/en/main/file-conventions/routes) conventions for interpreting filenames and directories.
 
 ```
 /routes
 ├── api
 │   ├── files
-│   ├── ├── [id].get.ts // named parameter id, NextJS-style
+│   ├── ├── $id.get.ts // named parameter id, Remix-style
 │   │   └── hashes.$.get.ts // wildcard, *, parameter, Remix-style
 │   ├── health
 │   │   └── get.ts
@@ -120,6 +120,11 @@ This plugin supports the following customizable options.
 
 - An array of file extensions for the route files.
 - Default: `[".js", ".ts", ".jsx", ".tsx"]`
+
+**convention**
+
+- The file/folder naming convention to use, can be either Remix or NextJS style.
+- Default: `"remix"`
 
 **logLevel**
 
