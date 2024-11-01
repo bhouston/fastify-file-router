@@ -37,7 +37,9 @@
         "parallel": true
       }
     },
+    "test": {},
     "typecheck": {},
-    "test": {}
+    "format": {},
+    "lint": {}
   }
 }

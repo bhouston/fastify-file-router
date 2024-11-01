@@ -208,9 +208,9 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
       // ignore files that start with a dot, or underscore.  Also ignore files that end in .test.js or .test.ts or include __tests__ in the path or include .d.ts
       // also ignore files that end in .spec.js or .spec.ts
       exclude: excludePatterns = [
-        /^[\.|_].*/,
-        /\.(test|spec)\.[jt]s$/,
-        /__(test|spec)__/,
+        /^[.|_].*/,
+        /\.(?:test|spec)\.[jt]s$/,
+        /__(?:test|spec)__/,
         /\.d\.ts$/
       ]
     }: FastifyFileRouterOptions

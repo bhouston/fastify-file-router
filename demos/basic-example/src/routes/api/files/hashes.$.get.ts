@@ -7,7 +7,7 @@ import type { FromSchema } from 'json-schema-to-ts';
 const ParamsSchema = {
   type: 'object',
   properties: {
-    ['*']: { type: 'string' }
+    '*': { type: 'string' }
   },
   required: ['*']
 } as const;

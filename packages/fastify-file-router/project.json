@@ -23,6 +23,8 @@
         ],
         "parallel": false
       }
-    }
+    },
+    "format": {},
+    "lint": {}
   }
 }
