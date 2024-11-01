@@ -38,12 +38,11 @@ const toRouteRemixStyle = (segments: string[], fullPath: string): string => {
 
       const matchResult = segment.match(remixParamRegex);
       if (matchResult && matchResult.groups) {
-        const param = matchResult.groups['param'];
+        const param = matchResult.groups.param;
         if (param && param.length > 0) {
           return `:${param}`;
-        } else {
-          return '*';
         }
+        return '*';
       }
       return segment;
     })
@@ -52,7 +51,7 @@ const toRouteRemixStyle = (segments: string[], fullPath: string): string => {
 
 const toRouteNextStyle = (segments: string[], fullPath: string): string => {
   // ensures that only valid characters or a next.js parameter are present
-  const nextSegment = /^[[]?(\.\.\.|[^[\]&]*)[\]]?$/;
+  const nextSegment = /^[[]?(?:\.\.\.|[^[\]&]*)[\]]?$/;
   // regex that matches both a leading [ and trailing ], capturing the rest as the named capture group "param", regardless of what character it is
   const nextParamRegex = /^\[(?<param>.*)\]$/;
 
@@ -65,15 +64,14 @@ const toRouteNextStyle = (segments: string[], fullPath: string): string => {
 
       const matchResult = segment.match(nextParamRegex);
       if (matchResult && matchResult.groups) {
-        const param = matchResult.groups['param'];
+        const param = matchResult.groups.param;
         if (param && param.substring(0, 2) === '...') {
           return `*`;
         }
         if (param && param.length > 0) {
           return `:${param}`;
-        } else {
-          throw new Error(`Invalid segment "${segment}" in convention "next"`);
         }
+        throw new Error(`Invalid segment "${segment}" in convention "next"`);
       }
       return segment;
     })

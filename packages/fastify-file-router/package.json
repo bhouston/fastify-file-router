@@ -1,9 +1,8 @@
 {
   "name": "fastify-file-router",
   "description": "A fastify plugin that automatically registers routes from files in a directory.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
-  "src": "src/index.ts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
@@ -13,7 +12,10 @@
     "file-router",
     "directory",
     "automatic",
-    "fastify"
+    "fastify",
+    "plugin",
+    "nodejs",
+    "typescript"
   ],
   "homepage": "https://github.com/bhouston/fastify-file-router#readme",
   "repository": {
@@ -21,7 +23,7 @@
     "url": "git+https://github.com/bhouston/fastify-file-router"
   },
   "bugs": {
-    "url": "https://github.com/bhouston/fastify-file-router"
+    "url": "https://github.com/bhouston/fastify-file-router/issues"
   },
   "files": [
     "dist",
@@ -41,6 +43,10 @@
     "node-mocks-http": "^1.16.1"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
