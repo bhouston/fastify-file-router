@@ -11,6 +11,7 @@
     "clean": "rm -rf .nx node_modules packages/*/node_modules packages/*/dist packages/*/build",
     "lint": "nx run-many -t lint --parallel=8",
     "format": "nx run-many -t format --parallel=8",
+    "test": "nx run-many -t test --parallel=8",
     "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build"
   },
   "devDependencies": {

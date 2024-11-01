@@ -34,9 +34,10 @@ You can use any combination of file names and directories. We support either [Ne
 /routes
 ├── api
 │   ├── files
-│   ├── ├── $id.get.ts // named parameter id, Remix-style
+│   │   ├── $id.get.ts // named parameter id, Remix-style
 │   │   └── hashes.$.get.ts // wildcard, *, parameter, Remix-style
 │   ├── health
+│   │   ├── get.test.ts // ignored because it matches a pattern in exclude list
 │   │   └── get.ts
 │   └── users
 │       └── post.ts
@@ -122,10 +123,14 @@ This plugin supports the following customizable options.
 
 **extensions**
 
-- An array of file extensions for the route files.
+- An array of file extensions for the route files. Files without matching extensions are ignored
 - Default: `[".js", ".ts", ".jsx", ".tsx"]`
 
-**convention**
+**exclude**
+
+- An array of regexs which if matched against a filename or directory, lead it to being ignored/skipped over.
+- Default: `[ /^[\.|_].*/, /\.(test|spec)\.[jt]s$/, /__(test|spec)__/, /\.d\.ts$/ ]`
+  **convention**
 
 - The file/folder naming convention to use, can be either Remix or NextJS style.
 - Default: `"remix"`

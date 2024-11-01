@@ -84,15 +84,31 @@ async function registerRoutes(
   extensions: string[],
   convention: FileRouteConvention,
   logLevel: LogLevel,
+  exclude: RegExp[],
   dir: string,
   baseRootDir: string
 ) {
-  const files = await fs.readdir(dir);
+  const fileNames = await fs.readdir(dir);
   const baseSegments = dir.replace(baseRootDir, '').split('/').filter(Boolean);
 
   await Promise.all(
-    files.map(async (file) => {
-      const fullPath = path.join(dir, file);
+    fileNames.map(async (fileName) => {
+      // compare against each excludePattern
+      let matchingExcludePattern: undefined | RegExp = undefined;
+      for (const pattern of exclude) {
+        if (pattern.test(fileName)) {
+          matchingExcludePattern = pattern;
+          break;
+        }
+      }
+      if (matchingExcludePattern) {
+        fastify.log[logLevel](
+          `Ignoring ${fileName} as it matches the exclude pattern ${matchingExcludePattern.source}`
+        );
+        return;
+      }
+
+      const fullPath = path.join(dir, fileName);
 
       const stat = await fs.stat(fullPath);
       if (stat.isDirectory()) {
@@ -102,41 +118,44 @@ async function registerRoutes(
           extensions,
           convention,
           logLevel,
+          exclude,
           fullPath,
           baseRootDir
         );
         return;
       }
 
-      const segments = file.split('.');
+      const segments = fileName.split('.');
+      const extensionSegment = `.${segments[segments.length - 1]}`;
+      const methodSegment = segments[segments.length - 2];
+      const routeSegments = segments.slice(0, -2);
+
+      if (!extensions.includes(extensionSegment)) {
+        fastify.log[logLevel](
+          `Ignoring file ${fullPath} as its extension, ${extensionSegment}, isn't in the list of extensions.`
+        );
+        return;
+      }
       if (segments.length < 2) {
         throw new Error(
-          `Invalid file name "${file}" in file ${fullPath}, must have at least 2 segments separated by a dot`
-        );
-      }
-      const fileExtension = `.${segments.pop()}`;
-      if (!extensions.includes(fileExtension)) {
-        throw new Error(
-          `Invalid file extension "${fileExtension}" in file ${fullPath}, expected one of [${extensions.join(
-            ','
-          )}]`
+          `Invalid file name "${fileName}" in file ${fullPath}, must have at least 2 segments separated by a dot`
         );
       }
 
       // get next to last segment as method
-      const typedMethod = toHttpMethod(segments.pop()!, fullPath);
+      const typedMethod = toHttpMethod(methodSegment!, fullPath);
 
       let routePath;
       switch (convention) {
         case 'remix':
           routePath = toRouteRemixStyle(
-            [...baseSegments, ...segments],
+            [...baseSegments, ...routeSegments],
             fullPath
           );
           break;
         case 'next':
           routePath = toRouteNextStyle(
-            [...baseSegments, ...segments],
+            [...baseSegments, ...routeSegments],
             fullPath
           );
           break;
@@ -185,7 +204,15 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
       buildRoot = '.',
       extensions = ['.js', '.ts', '.jsx', '.tsx'],
       convention = 'remix',
-      logLevel = 'info'
+      logLevel = 'info',
+      // ignore files that start with a dot, or underscore.  Also ignore files that end in .test.js or .test.ts or include __tests__ in the path or include .d.ts
+      // also ignore files that end in .spec.js or .spec.ts
+      exclude: excludePatterns = [
+        /^[\.|_].*/,
+        /\.(test|spec)\.[jt]s$/,
+        /__(test|spec)__/,
+        /\.d\.ts$/
+      ]
     }: FastifyFileRouterOptions
   ) => {
     const cwd = process.env.REMIX_ROOT ?? process.cwd();
@@ -217,6 +244,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
             extensions,
             convention,
             logLevel,
+            excludePatterns,
             absoluteSourceRoutesDir,
             absoluteSourceRoutesDir
           );

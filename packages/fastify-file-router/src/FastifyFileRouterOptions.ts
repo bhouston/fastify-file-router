@@ -34,4 +34,8 @@ export type FastifyFileRouterOptions = {
    * @default "info"
    */
   logLevel?: LogLevel;
+  /**
+   * Exclusion patterns for files to ignore.
+   */
+  exclude?: RegExp[];
 };

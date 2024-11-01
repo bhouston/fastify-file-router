@@ -37,6 +37,7 @@
         "parallel": true
       }
     },
-    "typecheck": {}
+    "typecheck": {},
+    "test": {}
   }
 }

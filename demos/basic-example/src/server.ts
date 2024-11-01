@@ -1,12 +1,4 @@
-import Fastify from 'fastify';
-import { fastifyFileRouter } from 'fastify-file-router';
-
-const app = Fastify({
-  logger: true,
-  trustProxy: true
-});
-
-await app.register(fastifyFileRouter);
+import app from './buildFastify.ts';
 
 // https://fastify.dev/docs/latest/Guides/Serverless/#google-cloud-run
 // Google Cloud Run will set this environment variable for you, so
