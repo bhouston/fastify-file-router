@@ -1,5 +1,9 @@
 # Fastify File Router
 
+[![NPM Package][npm]][npm-url]
+[![Build Size][build-size]][build-size-url]
+[![NPM Downloads][npm-downloads]][npmtrends-url]
+
 This Fastify plugin is inspired by the file based routers in Next.js and Remix.
 
 This allows you to specify all of your server routes using either filenames or a combination of filenames and nested directories.
@@ -148,3 +152,10 @@ npm run build && npm run start
 # publish the npm package
 npm run publish
 ```
+
+[npm]: https://img.shields.io/npm/v/fastify-file-router
+[npm-url]: https://www.npmjs.com/package/fastify-file-router
+[build-size]: https://badgen.net/bundlephobia/minzip/fastify-file-router
+[build-size-url]: https://bundlephobia.com/result?p=fastify-file-router
+[npm-downloads]: https://img.shields.io/npm/dw/fastify-file-router
+[npmtrends-url]: https://www.npmtrends.com/fastify-file-router
