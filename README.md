@@ -130,7 +130,8 @@ This plugin supports the following customizable options.
 
 - An array of regexs which if matched against a filename or directory, lead it to being ignored/skipped over.
 - Default: `[ /^[\.|_].*/, /\.(test|spec)\.[jt]s$/, /__(test|spec)__/, /\.d\.ts$/ ]`
-  **convention**
+
+**convention**
 
 - The file/folder naming convention to use, can be either Remix or NextJS style.
 - Default: `"remix"`
