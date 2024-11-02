@@ -29,6 +29,7 @@
     "start": {
       "executor": "nx:run-commands",
       "inputs": ["default"],
+      "dependsOn": ["build"],
       "options": {
         "cwd": "{projectRoot}",
         "commands": [
