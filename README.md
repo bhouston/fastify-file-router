@@ -1,7 +1,6 @@
 # Fastify File Router
 
 [![NPM Package][npm]][npm-url]
-[![Build Size][build-size]][build-size-url]
 [![NPM Downloads][npm-downloads]][npmtrends-url]
 
 This Fastify plugin is inspired by the file based routers in Next.js and Remix.
@@ -175,7 +174,5 @@ Underneath the hood, we are using [NX](https://nx.dev) to manage the monorepo an
 
 [npm]: https://img.shields.io/npm/v/fastify-file-router
 [npm-url]: https://www.npmjs.com/package/fastify-file-router
-[build-size]: https://badgen.net/bundlephobia/minzip/fastify-file-router
-[build-size-url]: https://bundlephobia.com/result?p=fastify-file-router
 [npm-downloads]: https://img.shields.io/npm/dw/fastify-file-router
 [npmtrends-url]: https://www.npmtrends.com/fastify-file-router
