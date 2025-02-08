@@ -5,7 +5,7 @@
 
 This Fastify plugin is inspired by the file based routers in Next.js and Remix.
 
-This allows you to specify all of your server routes using either filenames or a combination of filenames and nested directories.
+It allows you to specify all of your server routes using either filenames or a combination of filenames and nested directories.
 
 Supports both JavaScript and TypeScript (on Node 22+.)
 
@@ -14,7 +14,7 @@ Supports both JavaScript and TypeScript (on Node 22+.)
 _NOTE: This is an ESM-only package._
 
 ```sh
-npm install fastify-file-router
+pnpm add fastify-file-router
 ```
 
 ## Example
@@ -140,37 +140,9 @@ This plugin supports the following customizable options.
 - The verbosity level for the plugin.
 - Default: `"info"`
 
-## Plugin Development (for Contributors only)
+## Contributing
 
-If you want to contribute, just check out [this git project](https://github.com/bhouston/fastify-file-router) and run the following commands to get going:
-
-```sh
-# install dependencies
-npm install
-
-# hot-reloading development server
-npm run dev
-
-# build & start server
-npm run build && npm run start
-
-# prettify
-npm run format
-
-# eslint
-npm run lint
-
-# build and run tests
-npm run test
-
-# clean everything, should be like doing a fresh git checkout of the repo.
-npm run clean
-
-# publish the npm package
-npm run publish
-```
-
-Underneath the hood, we are using [NX](https://nx.dev) to manage the monorepo and shared scripts.
+If you'd like to contribute to the project, please see our [Contributing Guidelines](CONTRIBUTING.md).
 
 [npm]: https://img.shields.io/npm/v/fastify-file-router
 [npm-url]: https://www.npmjs.com/package/fastify-file-router
