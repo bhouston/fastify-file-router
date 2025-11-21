@@ -10,7 +10,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**/src/**/*", "**/scripts/**/*", "!**/node_modules", "!**/dist", "!**/.nx"]
+    "includes": ["**/src/**/*", "**/scripts/**/*", "!**/node_modules", "!**/dist", "!**/.nx", "!**/coverage"]
   },
   "formatter": {
     "enabled": true,

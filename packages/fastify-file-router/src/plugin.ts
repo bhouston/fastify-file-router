@@ -50,7 +50,6 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
       throw new Error(`Build root is not a directory: ${absoluteBuildRoot}`);
     }
 
-    let numberOfValidRouteDirs = 0;
     await Promise.all(
       routesDirs.map(async (routesDir) => {
         if (path.isAbsolute(routesDir)) {
@@ -67,7 +66,6 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
         if (!stats.isDirectory()) {
           throw new Error(`Routes directory is not a directory: ${absoluteSourceRoutesDir}`);
         }
-        numberOfValidRouteDirs++;
         await registerRoutes(
           fastify,
           mount,
@@ -81,10 +79,6 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
         );
       }),
     );
-
-    if (numberOfValidRouteDirs === 0) {
-      throw new Error(`None of routesDirs, [${routesDirs.join(', ')}], were valid directories.`);
-    }
   },
   {
     // replaced with the package name during build

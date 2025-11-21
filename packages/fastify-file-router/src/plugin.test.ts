@@ -175,4 +175,45 @@ describe('fastifyFileRouter - invalid options', () => {
 
     await app.close();
   });
+
+  test('throws error when mount does not start with slash', async () => {
+    const app = Fastify({ logger: false });
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        mount: 'api',
+        routesDirs: ['./routes'],
+      }),
+    ).rejects.toThrow('Mount point "api" must start with a slash');
+
+    await app.close();
+  });
+
+  test('throws error when extension does not start with dot', async () => {
+    const app = Fastify({ logger: false });
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        extensions: ['ts', '.js'],
+        routesDirs: ['./routes'],
+      }),
+    ).rejects.toThrow('Invalid extension "ts", must start with a dot');
+
+    await app.close();
+  });
+
+  test('throws error when routesDirs are invalid', async () => {
+    const app = Fastify({ logger: false });
+    const nonExistentDir1 = './non-existent-1';
+    const nonExistentDir2 = './non-existent-2';
+
+    // With Promise.all, we get the first error
+    await expect(
+      app.register(fastifyFileRouter, {
+        routesDirs: [nonExistentDir1, nonExistentDir2],
+      }),
+    ).rejects.toThrow('Routes directory does not exist');
+
+    await app.close();
+  });
 });

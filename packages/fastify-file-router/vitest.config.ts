@@ -19,7 +19,8 @@ export default defineConfig({
         '**/tests/**',
         '**/*.d.ts',
         '**/vitest.config.ts',
-        '**/vitest.config.js'
+        '**/vitest.config.js',
+        '**/temp-*/**'
       ]
     }
   },
