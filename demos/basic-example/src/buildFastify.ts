@@ -1,11 +1,13 @@
 import Fastify from 'fastify';
 import { fastifyFileRouter } from 'fastify-file-router';
 
-const app = Fastify({
-  logger: true,
-  trustProxy: true,
-});
+export async function getApp() {
+  const app = Fastify({
+    logger: true,
+    trustProxy: true,
+  });
 
-await app.register(fastifyFileRouter);
+  await app.register(fastifyFileRouter);
 
-export default app;
+  return app;
+}

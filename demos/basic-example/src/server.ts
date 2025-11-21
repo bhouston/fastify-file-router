@@ -1,4 +1,4 @@
-import app from './buildFastify.ts';
+import { getApp } from './buildFastify.ts';
 
 // https://fastify.dev/docs/latest/Guides/Serverless/#google-cloud-run
 // Google Cloud Run will set this environment variable for you, so
@@ -10,6 +10,7 @@ const port = process.env.PORT !== undefined ? Number(process.env.PORT) : 3001;
 const host = IS_GOOGLE_CLOUD_RUN ? '0.0.0.0' : undefined;
 
 // Run the server!
+const app = await getApp();
 try {
   const address = await app.listen({ port, host });
   console.log(`Server is running on port ${address}`);

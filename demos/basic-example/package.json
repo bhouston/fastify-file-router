@@ -12,5 +12,9 @@
     "fastify": "^5.0.0",
     "fastify-file-router": "*",
     "json-schema-to-ts": "^3.1.1"
+  },
+  "devDependencies": {
+    "@vitest/ui": "^2.1.8",
+    "vitest": "^2.1.8"
   }
 }
