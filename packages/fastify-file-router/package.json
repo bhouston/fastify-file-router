@@ -40,7 +40,8 @@
   },
   "devDependencies": {
     "@types/node": "^24",
-    "node-mocks-http": "^1.16.1"
+    "node-mocks-http": "^1.16.1",
+    "vitest": "^2.1.8"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
@@ -53,6 +54,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "tsc": "tsc --noEmit",
-    "publish": "rm -rf ./publish && mkdir ./publish && cp ./package.json ./publish/package.json && cp ../../LICENSE ./publish/LICENSE && cp ../../README.md ./publish/README.md && cp -r ./dist ./publish/dist && cp -r ./src ./publish/src && npm publish ./publish/ --access public"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "publish": "rm -rf ./publish && mkdir ./publish && cp ./package.json ./publish/package.json && cp ../../LICENSE ./publish/LICENSE && cp ../../README.md ./publish/README.md && cp -r ./dist ./publish/dist && npm publish ./publish/ --access public"
   }
 }

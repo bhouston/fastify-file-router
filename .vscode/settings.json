@@ -1,13 +1,26 @@
 {
   "eslint.probe": ["javascript", "javascriptreact", "typescript", "json"],
-  "editor.formatOnSave": true,
-  "editor.formatOnPaste": true,
-  "cSpell.words": ["Fastify", "typecheck"],
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.codeActionsOnSave": ["source.formatDocument", "source.fixAll.eslint"],
-  "[glsl]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": ["source.formatDocument"]
+
+
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit",
+    "source.useSortedAttributes.biome": "explicit"
   },
-  "files.exclude": {}
+
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.rulers": [120],
+  "javascript.preferences.importModuleSpecifier": "relative",
+
+  // JavaScript/TypeScript specific
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.importModuleSpecifier": "relative",
+
+  // TypeScript specific
+  "typescript.updateImportsOnFileMove.enabled": "always",
+
+  // Workbench
+  "workbench.editor.enablePreview": false // Opens files in new tab instead of preview
 }

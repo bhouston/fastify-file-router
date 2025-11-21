@@ -35,6 +35,11 @@ export type FastifyFileRouterOptions = {
    */
   logLevel?: LogLevel;
   /**
+   * Whether to log routes to the console.
+   * @default false
+   */
+  logRoutes?: boolean;
+  /**
    * Exclusion patterns for files to ignore.
    */
   exclude?: RegExp[];

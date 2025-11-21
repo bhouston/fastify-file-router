@@ -4,13 +4,14 @@
   "src": "src/index.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch & node --no-warnings --experimental-strip-types --experimental-transform-types --watch src/server.ts",
+    "dev": "node --no-warnings --experimental-strip-types --experimental-transform-types --watch --watch-preserve-output src/server.ts",
     "start": "node --no-warnings --experimental-strip-types --experimental-transform-types src/server.ts",
-    "tsc": "tsc --noEmit"
+    "tsc": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "fastify": "^5.0.0",
-    "fastify-file-router": "*",
+    "fastify-file-router": "workspace:*",
     "json-schema-to-ts": "^3.1.1"
   },
   "devDependencies": {

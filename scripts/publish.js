@@ -29,6 +29,39 @@ async function run() {
     process.exit(1);
   }
 
+  const rootDir = process.cwd();
+
+  // Run biome check before publishing
+  console.log('Running biome check...');
+  try {
+    execSync('pnpm check', {
+      stdio: 'inherit',
+      cwd: rootDir,
+    });
+  } catch {
+    console.error('Biome check failed. Please fix linting/formatting issues before publishing.');
+    process.exit(1);
+  }
+
+  // Run tests before publishing
+  console.log('Running tests...');
+  try {
+    execSync('pnpm test', {
+      stdio: 'inherit',
+      cwd: rootDir,
+    });
+  } catch {
+    console.error('Tests failed. Please fix failing tests before publishing.');
+    process.exit(1);
+  }
+
+  // Build all packages before publishing
+  console.log('Building packages...');
+  execSync('pnpm build', {
+    stdio: 'inherit',
+    cwd: rootDir,
+  });
+
   const prerelease = semver.prerelease(taggedVersion);
   const prereleaseTag = prerelease ? String(prerelease[0]) : undefined;
   const tag = prereleaseTag

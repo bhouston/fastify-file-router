@@ -140,6 +140,11 @@ This plugin supports the following customizable options.
 - The verbosity level for the plugin.
 - Default: `"info"`
 
+**logRoutes**
+
+- Output the routes being registered and from which files.
+- Default: `false`
+
 ## Plugin Development (for Contributors only)
 
 If you want to contribute, just check out [this git project](https://github.com/bhouston/fastify-file-router) and run the following commands to get going:

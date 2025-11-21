@@ -1,0 +1,178 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import Fastify from 'fastify';
+import { describe, expect, test } from 'vitest';
+import { fastifyFileRouter } from './plugin.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+describe('fastifyFileRouter - invalid options', () => {
+  test('throws error when buildRoot is an absolute path', async () => {
+    const app = Fastify({ logger: false });
+    const absolutePath = path.resolve(__dirname, './routes');
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        buildRoot: absolutePath,
+      }),
+    ).rejects.toThrow(`Build root "${absolutePath}" is an absolute path, but must be a relative path`);
+
+    await app.close();
+  });
+
+  test('throws error when routesDir is an absolute path', async () => {
+    const app = Fastify({ logger: false });
+    const absolutePath = path.resolve(__dirname, './routes');
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        routesDirs: [absolutePath],
+      }),
+    ).rejects.toThrow(`Routes directory "${absolutePath}" is an absolute path, but must be a relative path`);
+
+    await app.close();
+  });
+
+  test('throws error when multiple routesDirs contain absolute paths', async () => {
+    const app = Fastify({ logger: false });
+    const absolutePath1 = path.resolve(__dirname, './routes');
+    const absolutePath2 = path.resolve(__dirname, './src/routes');
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        routesDirs: ['./routes', absolutePath1, absolutePath2],
+      }),
+    ).rejects.toThrow(`Routes directory "${absolutePath1}" is an absolute path, but must be a relative path`);
+
+    await app.close();
+  });
+
+  test('throws error when buildRoot does not exist', async () => {
+    const app = Fastify({ logger: false });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+    const nonExistentBuildRoot = './non-existent-build-root';
+    const expectedFullPath = path.resolve(cwd, nonExistentBuildRoot);
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        buildRoot: nonExistentBuildRoot,
+        routesDirs: ['./routes'],
+      }),
+    ).rejects.toThrow(`Build root directory does not exist: ${expectedFullPath}`);
+
+    await app.close();
+  });
+
+  test('throws error when routesDir does not exist', async () => {
+    const app = Fastify({ logger: false });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+    const nonExistentRoutesDir = './non-existent-routes';
+    const expectedFullPath = path.resolve(cwd, nonExistentRoutesDir);
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        routesDirs: [nonExistentRoutesDir],
+      }),
+    ).rejects.toThrow(`Routes directory does not exist: ${expectedFullPath}`);
+
+    await app.close();
+  });
+
+  test('throws error when routesDir does not exist with custom buildRoot', async () => {
+    const app = Fastify({ logger: false });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+    // Use '.' as buildRoot since it exists
+    const buildRoot = '.';
+    const nonExistentRoutesDir = './non-existent-routes';
+    const expectedFullPath = path.resolve(cwd, buildRoot, nonExistentRoutesDir);
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        buildRoot,
+        routesDirs: [nonExistentRoutesDir],
+      }),
+    ).rejects.toThrow(`Routes directory does not exist: ${expectedFullPath}`);
+
+    await app.close();
+  });
+
+  test('throws error when multiple routesDirs do not exist', async () => {
+    const app = Fastify({ logger: false });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+    const nonExistentDir1 = './non-existent-1';
+    const nonExistentDir2 = './non-existent-2';
+    const expectedFullPath1 = path.resolve(cwd, nonExistentDir1);
+    const expectedFullPath2 = path.resolve(cwd, nonExistentDir2);
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        routesDirs: [nonExistentDir1, nonExistentDir2],
+      }),
+    ).rejects.toThrow();
+
+    // The error should mention at least one of the non-existent directories
+    try {
+      await app.register(fastifyFileRouter, {
+        routesDirs: [nonExistentDir1, nonExistentDir2],
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      expect(errorMessage.includes(expectedFullPath1) || errorMessage.includes(expectedFullPath2)).toBe(true);
+    }
+
+    await app.close();
+  });
+
+  test('throws error when buildRoot exists but is not a directory', async () => {
+    const app = Fastify({ logger: false });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+    // Use a file that exists (this test file itself) as buildRoot
+    // Calculate relative path from cwd to this test file
+    const testFileAbsolutePath = __filename;
+    const buildRoot = path.relative(cwd, testFileAbsolutePath);
+    const expectedFullPath = path.resolve(cwd, buildRoot);
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        buildRoot,
+        routesDirs: ['./routes'],
+      }),
+    ).rejects.toThrow(`Build root is not a directory: ${expectedFullPath}`);
+
+    await app.close();
+  });
+
+  test('throws error when routesDir exists but is not a directory', async () => {
+    const app = Fastify({ logger: false });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+    // Use a file that exists as routesDir
+    // Calculate relative path from cwd to this test file
+    const testFileAbsolutePath = __filename;
+    const routesDir = path.relative(cwd, testFileAbsolutePath);
+    const expectedFullPath = path.resolve(cwd, routesDir);
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        routesDirs: [routesDir],
+      }),
+    ).rejects.toThrow(`Routes directory is not a directory: ${expectedFullPath}`);
+
+    await app.close();
+  });
+
+  test('validates relative paths before checking existence', async () => {
+    const app = Fastify({ logger: false });
+    const absolutePath = path.resolve(__dirname, './routes');
+
+    // Should throw about absolute path, not about non-existence
+    await expect(
+      app.register(fastifyFileRouter, {
+        buildRoot: absolutePath,
+        routesDirs: ['./routes'],
+      }),
+    ).rejects.toThrow('is an absolute path, but must be a relative path');
+
+    await app.close();
+  });
+});

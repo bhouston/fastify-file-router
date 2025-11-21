@@ -10,7 +10,7 @@ const port = process.env.PORT !== undefined ? Number(process.env.PORT) : 3001;
 const host = IS_GOOGLE_CLOUD_RUN ? '0.0.0.0' : undefined;
 
 // Run the server!
-const app = await getApp();
+const app = await getApp({ logRoutes: true, logLevel: 'trace' });
 try {
   const address = await app.listen({ port, host });
   console.log(`Server is running on port ${address}`);

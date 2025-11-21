@@ -1,7 +1,3 @@
 {
-  "recommendations": [
-    "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
-    "kisstkondoros.vscode-codemetrics"
-  ]
+  "recommendations": ["biomejs.biome", "github.vscode-github-actions"]
 }

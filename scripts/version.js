@@ -5,7 +5,7 @@ import jsonfile from 'jsonfile';
 import Confirm from 'prompt-confirm';
 import semver from 'semver';
 
-const packages = ['remix-fastify'];
+const packages = ['fastify-file-router'];
 
 const rootDir = path.join(import.meta.dirname, '..');
 
@@ -29,7 +29,7 @@ async function run(args) {
   ensureCleanWorkingDirectory();
 
   // Get the next version number
-  const currentVersion = await getPackageVersion('remix-fastify');
+  const currentVersion = await getPackageVersion('fastify-file-router');
   let nextVersion = semver.valid(givenVersion);
   if (nextVersion == null) {
     nextVersion = getNextVersion(currentVersion, givenVersion, prereleaseId);
@@ -84,8 +84,9 @@ async function updatePackageConfig(packageName, transform) {
 async function updateVersion(packageName, nextVersion, successMessage) {
   await updatePackageConfig(packageName, (config) => {
     config.version = nextVersion;
+    // Update internal dependencies if any exist
     for (const pkg of packages) {
-      const fullPackageName = `@mcansh/${pkg}`;
+      const fullPackageName = pkg;
       if (config.dependencies?.[fullPackageName]) {
         config.dependencies[fullPackageName] = nextVersion;
       }
@@ -98,7 +99,7 @@ async function updateVersion(packageName, nextVersion, successMessage) {
       }
     }
   });
-  const logName = `@mcansh/${packageName.slice(6)}`;
+  const logName = packageName;
   console.log(
     chalk.green(`  ${successMessage || `Updated ${chalk.bold(logName)} to version ${chalk.bold(nextVersion)}`}`),
   );
