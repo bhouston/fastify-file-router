@@ -5,21 +5,18 @@ const bodySchema = {
   type: 'object',
   properties: {
     email: { type: 'string' },
-    password: { type: 'string' }
+    password: { type: 'string' },
   },
-  required: ['email', 'password']
+  required: ['email', 'password'],
 } as const;
 
 export const schema = {
-  body: bodySchema
+  body: bodySchema,
 };
 
 type BodySchemaType = FromSchema<typeof bodySchema>;
 
-export default async function handler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export default async function handler(request: FastifyRequest, reply: FastifyReply) {
   // get the request body
   const { email, password } = request.body as BodySchemaType;
   console.log({ email, password });

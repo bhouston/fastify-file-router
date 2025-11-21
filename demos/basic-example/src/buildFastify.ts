@@ -3,7 +3,7 @@ import { fastifyFileRouter } from 'fastify-file-router';
 
 const app = Fastify({
   logger: true,
-  trustProxy: true
+  trustProxy: true,
 });
 
 await app.register(fastifyFileRouter);

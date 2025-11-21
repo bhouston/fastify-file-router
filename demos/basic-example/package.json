@@ -2,6 +2,12 @@
   "name": "basic-example",
   "type": "module",
   "src": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch & node --no-warnings --experimental-strip-types --experimental-transform-types --watch src/server.ts",
+    "start": "node --no-warnings --experimental-strip-types --experimental-transform-types src/server.ts",
+    "tsc": "tsc --noEmit"
+  },
   "dependencies": {
     "fastify": "^5.0.0",
     "fastify-file-router": "*",

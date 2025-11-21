@@ -7,21 +7,18 @@ import type { FromSchema } from 'json-schema-to-ts';
 const ParamsSchema = {
   type: 'object',
   properties: {
-    id: { type: 'string' }
+    id: { type: 'string' },
   },
-  required: ['id']
+  required: ['id'],
 } as const;
 
 type ParamsSchema = FromSchema<typeof ParamsSchema>;
 
 export const schema: RouteSchema = {
-  params: ParamsSchema
+  params: ParamsSchema,
 };
 
-export default async function handler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export default async function handler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as ParamsSchema;
   console.log({ id });
 
@@ -29,6 +26,6 @@ export default async function handler(
   reply.status(200).send({
     id,
     name: 'John Doe',
-    email: 'john.doe@microsoft.com'
+    email: 'john.doe@microsoft.com',
   });
 }

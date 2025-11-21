@@ -1,13 +1,13 @@
-import path from "node:path";
-import { execSync } from "node:child_process";
-import semver from "semver";
-import jsonfile from "jsonfile";
-import chalk from "chalk";
-import Confirm from "prompt-confirm";
+import { execSync } from 'node:child_process';
+import path from 'node:path';
+import chalk from 'chalk';
+import jsonfile from 'jsonfile';
+import Confirm from 'prompt-confirm';
+import semver from 'semver';
 
-let packages = ["remix-fastify"];
+const packages = ['remix-fastify'];
 
-let rootDir = path.join(import.meta.dirname, "..");
+const rootDir = path.join(import.meta.dirname, '..');
 
 run(process.argv.slice(2)).then(
   () => {
@@ -23,23 +23,21 @@ run(process.argv.slice(2)).then(
  * @param {string[]} args
  */
 async function run(args) {
-  let givenVersion = args[0];
-  let prereleaseId = args[1];
+  const givenVersion = args[0];
+  const prereleaseId = args[1];
 
   ensureCleanWorkingDirectory();
 
   // Get the next version number
-  let currentVersion = await getPackageVersion("remix-fastify");
+  const currentVersion = await getPackageVersion('remix-fastify');
   let nextVersion = semver.valid(givenVersion);
   if (nextVersion == null) {
     nextVersion = getNextVersion(currentVersion, givenVersion, prereleaseId);
   }
 
   // Confirm the next version number
-  if (prereleaseId !== "--skip-prompt") {
-    let answer = await prompt(
-      `Are you sure you want to bump version ${currentVersion} to ${nextVersion}? [Yn] `,
-    );
+  if (prereleaseId !== '--skip-prompt') {
+    const answer = await prompt(`Are you sure you want to bump version ${currentVersion} to ${nextVersion}? [Yn] `);
     if (answer === false) return 0;
   }
 
@@ -51,9 +49,7 @@ async function run(args) {
  */
 async function incrementVersion(nextVersion) {
   // Update version numbers in package.json for all packages
-  for (let name of packages) {
-    await updateVersion(`${name}`, nextVersion);
-  }
+  await Promise.all(packages.map((name) => updateVersion(`${name}`, nextVersion)));
 
   // Commit and tag
   execSync(`git commit --all --message="Version ${nextVersion}"`);
@@ -66,9 +62,9 @@ async function incrementVersion(nextVersion) {
  * @param {(json: import('type-fest').PackageJson) => any} transform
  */
 async function updatePackageConfig(packageName, transform) {
-  let file = packageJson(packageName, "packages");
+  const file = packageJson(packageName, 'packages');
   try {
-    let json = await jsonfile.readFile(file);
+    const json = await jsonfile.readFile(file);
     if (!json) {
       console.log(`No package.json found for ${packageName}; skipping`);
       return;
@@ -88,8 +84,8 @@ async function updatePackageConfig(packageName, transform) {
 async function updateVersion(packageName, nextVersion, successMessage) {
   await updatePackageConfig(packageName, (config) => {
     config.version = nextVersion;
-    for (let pkg of packages) {
-      let fullPackageName = `@mcansh/${pkg}`;
+    for (const pkg of packages) {
+      const fullPackageName = `@mcansh/${pkg}`;
       if (config.dependencies?.[fullPackageName]) {
         config.dependencies[fullPackageName] = nextVersion;
       }
@@ -97,22 +93,14 @@ async function updateVersion(packageName, nextVersion, successMessage) {
         config.devDependencies[fullPackageName] = nextVersion;
       }
       if (config.peerDependencies?.[fullPackageName]) {
-        let isRelaxedPeerDep =
-          config.peerDependencies[fullPackageName]?.startsWith("^");
-        config.peerDependencies[fullPackageName] = `${
-          isRelaxedPeerDep ? "^" : ""
-        }${nextVersion}`;
+        const isRelaxedPeerDep = config.peerDependencies[fullPackageName]?.startsWith('^');
+        config.peerDependencies[fullPackageName] = `${isRelaxedPeerDep ? '^' : ''}${nextVersion}`;
       }
     }
   });
-  let logName = `@mcansh/${packageName.slice(6)}`;
+  const logName = `@mcansh/${packageName.slice(6)}`;
   console.log(
-    chalk.green(
-      `  ${
-        successMessage ||
-        `Updated ${chalk.bold(logName)} to version ${chalk.bold(nextVersion)}`
-      }`,
-    ),
+    chalk.green(`  ${successMessage || `Updated ${chalk.bold(logName)} to version ${chalk.bold(nextVersion)}`}`),
   );
 }
 
@@ -122,18 +110,19 @@ async function updateVersion(packageName, nextVersion, successMessage) {
  * @param {string} [prereleaseId]
  * @returns
  */
-function getNextVersion(currentVersion, givenVersion, prereleaseId = "pre") {
+function getNextVersion(currentVersion, givenVersion, prereleaseId = 'pre') {
   if (givenVersion == null) {
-    console.error("Missing next version. Usage: node version.js [nextVersion]");
+    // biome-ignore lint/security/noSecrets: This is a usage message, not a secret
+    console.error('Missing next version. Usage: node version.js [nextVersion]');
     process.exit(1);
   }
 
   let nextVersion;
-  if (givenVersion === "experimental") {
-    let hash = execSync(`git rev-parse --short HEAD`).toString().trim();
+  if (givenVersion === 'experimental') {
+    const hash = execSync(`git rev-parse --short HEAD`).toString().trim();
     nextVersion = `0.0.0-experimental-${hash}`;
   } else {
-    // @ts-ignore
+    // @ts-expect-error
     nextVersion = semver.inc(currentVersion, givenVersion, prereleaseId);
   }
 
@@ -149,12 +138,10 @@ function getNextVersion(currentVersion, givenVersion, prereleaseId = "pre") {
  * @returns {void}
  */
 function ensureCleanWorkingDirectory() {
-  let status = execSync(`git status --porcelain`).toString().trim();
-  let lines = status.split("\n");
-  if (!lines.every((line) => line === "" || line.startsWith("?"))) {
-    console.error(
-      "Working directory is not clean. Please commit or stash your changes.",
-    );
+  const status = execSync(`git status --porcelain`).toString().trim();
+  const lines = status.split('\n');
+  if (!lines.every((line) => line === '' || line.startsWith('?'))) {
+    console.error('Working directory is not clean. Please commit or stash your changes.');
     process.exit(1);
   }
 }
@@ -164,8 +151,8 @@ function ensureCleanWorkingDirectory() {
  * @param {string} [directory]
  * @returns {string}
  */
-function packageJson(packageName, directory = "") {
-  return path.join(rootDir, directory, packageName, "package.json");
+function packageJson(packageName, directory = '') {
+  return path.join(rootDir, directory, packageName, 'package.json');
 }
 
 /**
@@ -173,8 +160,8 @@ function packageJson(packageName, directory = "") {
  * @returns {Promise<string | undefined>}
  */
 async function getPackageVersion(packageName) {
-  let file = packageJson(packageName, "packages");
-  let json = await jsonfile.readFile(file);
+  const file = packageJson(packageName, 'packages');
+  const json = await jsonfile.readFile(file);
   return json.version;
 }
 
@@ -183,7 +170,7 @@ async function getPackageVersion(packageName) {
  * @returns {Promise<string | boolean>}
  */
 async function prompt(question) {
-  let confirm = new Confirm(question);
-  let answer = await confirm.run();
+  const confirm = new Confirm(question);
+  const answer = await confirm.run();
   return answer;
 }

@@ -7,21 +7,18 @@ import type { FromSchema } from 'json-schema-to-ts';
 const ParamsSchema = {
   type: 'object',
   properties: {
-    '*': { type: 'string' }
+    '*': { type: 'string' },
   },
-  required: ['*']
+  required: ['*'],
 } as const;
 
 type ParamsSchema = FromSchema<typeof ParamsSchema>;
 
 export const schema: RouteSchema = {
-  params: ParamsSchema
+  params: ParamsSchema,
 };
 
-export default async function handler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export default async function handler(request: FastifyRequest, reply: FastifyReply) {
   const params = request.params as ParamsSchema;
   reply.status(200).send({ message: `Wildcard value is ${params['*']}` });
 }

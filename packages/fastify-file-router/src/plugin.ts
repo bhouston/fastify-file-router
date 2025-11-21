@@ -1,19 +1,24 @@
 import type { Stats } from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
-
 import type { FastifyInstance, HTTPMethods, LogLevel } from 'fastify';
 import fp from 'fastify-plugin';
-import fs from 'fs/promises';
 
-import type {
-  FastifyFileRouterOptions,
-  FileRouteConvention
-} from './FastifyFileRouterOptions.js';
+import type { FastifyFileRouterOptions, FileRouteConvention } from './FastifyFileRouterOptions.js';
 import type { RouteModule } from './types.js';
 
 const validMethods = ['delete', 'get', 'head', 'patch', 'post', 'put'];
 const methodRegex = new RegExp(`^(${validMethods.join('|')})(\\..+)?$`);
-const segmentRegex = /^[$[]?.*[\]]?$/;
+const _segmentRegex = /^[$[]?.*[\]]?$/;
+
+// Regex patterns for route conversion
+const remixSegment = /^\$?[^[\]$&]*$/;
+const remixParamRegex = /^\$(?<param>.*)$/;
+const nextSegment = /^[[]?(?:\.\.\.|[^[\]&]*)[\]]?$/;
+const nextParamRegex = /^\[(?<param>.*)\]$/;
+
+// Default exclude patterns
+const defaultExcludePatterns = [/^[.|_].*/, /\.(?:test|spec)\.[jt]s$/, /__(?:test|spec)__/, /\.d\.ts$/];
 
 const toHttpMethod = (method: string, fullPath: string): HTTPMethods => {
   // Validate method
@@ -25,10 +30,6 @@ const toHttpMethod = (method: string, fullPath: string): HTTPMethods => {
 
 const toRouteRemixStyle = (segments: string[], fullPath: string): string => {
   // ensure that only valid characters or a remix parameter are present
-  const remixSegment = /^\$?[^[\]$&]*$/;
-  // regex that matches a leading $ and captures the rest as the named capture group "param", regardless of what character it is
-  const remixParamRegex = /^\$(?<param>.*)$/;
-
   return segments
     .map((segment) => {
       // Validate remaining segments
@@ -37,7 +38,7 @@ const toRouteRemixStyle = (segments: string[], fullPath: string): string => {
       }
 
       const matchResult = segment.match(remixParamRegex);
-      if (matchResult && matchResult.groups) {
+      if (matchResult?.groups) {
         const param = matchResult.groups.param;
         if (param && param.length > 0) {
           return `:${param}`;
@@ -51,10 +52,6 @@ const toRouteRemixStyle = (segments: string[], fullPath: string): string => {
 
 const toRouteNextStyle = (segments: string[], fullPath: string): string => {
   // ensures that only valid characters or a next.js parameter are present
-  const nextSegment = /^[[]?(?:\.\.\.|[^[\]&]*)[\]]?$/;
-  // regex that matches both a leading [ and trailing ], capturing the rest as the named capture group "param", regardless of what character it is
-  const nextParamRegex = /^\[(?<param>.*)\]$/;
-
   return segments
     .map((segment) => {
       // Validate remaining segments
@@ -63,7 +60,7 @@ const toRouteNextStyle = (segments: string[], fullPath: string): string => {
       }
 
       const matchResult = segment.match(nextParamRegex);
-      if (matchResult && matchResult.groups) {
+      if (matchResult?.groups) {
         const param = matchResult.groups.param;
         if (param && param.substring(0, 2) === '...') {
           return `*`;
@@ -86,7 +83,7 @@ async function registerRoutes(
   logLevel: LogLevel,
   exclude: RegExp[],
   dir: string,
-  baseRootDir: string
+  baseRootDir: string,
 ) {
   const fileNames = await fs.readdir(dir);
   const baseSegments = dir.replace(baseRootDir, '').split('/').filter(Boolean);
@@ -94,7 +91,7 @@ async function registerRoutes(
   await Promise.all(
     fileNames.map(async (fileName) => {
       // compare against each excludePattern
-      let matchingExcludePattern: undefined | RegExp = undefined;
+      let matchingExcludePattern: undefined | RegExp;
       for (const pattern of exclude) {
         if (pattern.test(fileName)) {
           matchingExcludePattern = pattern;
@@ -103,7 +100,7 @@ async function registerRoutes(
       }
       if (matchingExcludePattern) {
         fastify.log[logLevel](
-          `Ignoring ${fileName} as it matches the exclude pattern ${matchingExcludePattern.source}`
+          `Ignoring ${fileName} as it matches the exclude pattern ${matchingExcludePattern.source}`,
         );
         return;
       }
@@ -112,16 +109,7 @@ async function registerRoutes(
 
       const stat = await fs.stat(fullPath);
       if (stat.isDirectory()) {
-        await registerRoutes(
-          fastify,
-          mount,
-          extensions,
-          convention,
-          logLevel,
-          exclude,
-          fullPath,
-          baseRootDir
-        );
+        await registerRoutes(fastify, mount, extensions, convention, logLevel, exclude, fullPath, baseRootDir);
         return;
       }
 
@@ -132,35 +120,29 @@ async function registerRoutes(
 
       if (!extensions.includes(extensionSegment)) {
         fastify.log[logLevel](
-          `Ignoring file ${fullPath} as its extension, ${extensionSegment}, isn't in the list of extensions.`
+          `Ignoring file ${fullPath} as its extension, ${extensionSegment}, isn't in the list of extensions.`,
         );
         return;
       }
       if (segments.length < 2) {
         throw new Error(
-          `Invalid file name "${fileName}" in file ${fullPath}, must have at least 2 segments separated by a dot`
+          `Invalid file name "${fileName}" in file ${fullPath}, must have at least 2 segments separated by a dot`,
         );
       }
 
       // get next to last segment as method
-      const typedMethod = toHttpMethod(methodSegment!, fullPath);
+      if (!methodSegment) {
+        throw new Error(`Invalid file name "${fileName}" in file ${fullPath}, method segment is missing`);
+      }
+      const typedMethod = toHttpMethod(methodSegment, fullPath);
 
-      let routePath;
-      switch (convention) {
-        case 'remix':
-          routePath = toRouteRemixStyle(
-            [...baseSegments, ...routeSegments],
-            fullPath
-          );
-          break;
-        case 'next':
-          routePath = toRouteNextStyle(
-            [...baseSegments, ...routeSegments],
-            fullPath
-          );
-          break;
-        default:
-          throw new Error(`Invalid convention "${convention}"`);
+      let routePath: string;
+      if (convention === 'remix') {
+        routePath = toRouteRemixStyle([...baseSegments, ...routeSegments], fullPath);
+      } else if (convention === 'next') {
+        routePath = toRouteNextStyle([...baseSegments, ...routeSegments], fullPath);
+      } else {
+        throw new Error(`Invalid convention "${convention}"`);
       }
 
       const handlerModule = (await import(fullPath)) as RouteModule;
@@ -181,17 +163,15 @@ async function registerRoutes(
         throw new Error(`Schema export in file ${fullPath} is not an object`);
       }
       fastify.log[logLevel](
-        `Registering route ${typedMethod.toUpperCase()} ${url} ${
-          handlerModule.schema ? '(with schema)' : ''
-        }`
+        `Registering route ${typedMethod.toUpperCase()} ${url} ${handlerModule.schema ? '(with schema)' : ''}`,
       );
       fastify.route({
         method: typedMethod,
         url,
         schema: handlerModule.schema,
-        handler: handlerModule.default
+        handler: handlerModule.default,
       });
-    })
+    }),
   );
 }
 
@@ -207,23 +187,16 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
       logLevel = 'info',
       // ignore files that start with a dot, or underscore.  Also ignore files that end in .test.js or .test.ts or include __tests__ in the path or include .d.ts
       // also ignore files that end in .spec.js or .spec.ts
-      exclude: excludePatterns = [
-        /^[.|_].*/,
-        /\.(?:test|spec)\.[jt]s$/,
-        /__(?:test|spec)__/,
-        /\.d\.ts$/
-      ]
-    }: FastifyFileRouterOptions
+      exclude: excludePatterns = defaultExcludePatterns,
+    }: FastifyFileRouterOptions,
   ) => {
     const cwd = process.env.REMIX_ROOT ?? process.cwd();
 
-    extensions.map((extension) => {
+    for (const extension of extensions) {
       if (!extension.startsWith('.')) {
-        throw new Error(
-          `Invalid extension "${extension}", must start with a dot`
-        );
+        throw new Error(`Invalid extension "${extension}", must start with a dot`);
       }
-    });
+    }
 
     let numberOfValidRouteDirs = 0;
     await Promise.all(
@@ -233,7 +206,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
         let stats: Stats;
         try {
           stats = await fs.lstat(absoluteSourceRoutesDir);
-        } catch (_e) {
+        } catch {
           return;
         }
         if (stats.isDirectory()) {
@@ -246,23 +219,19 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
             logLevel,
             excludePatterns,
             absoluteSourceRoutesDir,
-            absoluteSourceRoutesDir
+            absoluteSourceRoutesDir,
           );
         }
-      })
+      }),
     );
 
     if (numberOfValidRouteDirs === 0) {
-      throw new Error(
-        `None of routesDirs, [${routesDirs.join(
-          ', '
-        )}], were valid directories.`
-      );
+      throw new Error(`None of routesDirs, [${routesDirs.join(', ')}], were valid directories.`);
     }
   },
   {
     // replaced with the package name during build
     name: 'fastify-file-router',
-    fastify: '5.x'
-  }
+    fastify: '5.x',
+  },
 );

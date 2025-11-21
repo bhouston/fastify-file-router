@@ -4,11 +4,11 @@ import { test } from 'node:test';
 import app from '../../../buildFastify.ts';
 
 // Example test for the handler
-test('GET handler responds with 204 status', async (t) => {
+test('GET handler responds with 204 status', async (_t) => {
   try {
     const response = await app.inject({
       method: 'get',
-      url: 'api/health'
+      url: 'api/health',
     });
     assert.strictEqual(response.statusCode, 204);
     // your tests

@@ -39,7 +39,7 @@
     "fastify": "^5.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^24",
     "node-mocks-http": "^1.16.1"
   },
   "publishConfig": {
@@ -47,6 +47,12 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "tsc": "tsc --noEmit",
+    "publish": "rm -rf ./publish && mkdir ./publish && cp ./package.json ./publish/package.json && cp ../../LICENSE ./publish/LICENSE && cp ../../README.md ./publish/README.md && cp -r ./dist ./publish/dist && cp -r ./src ./publish/src && npm publish ./publish/ --access public"
   }
 }
