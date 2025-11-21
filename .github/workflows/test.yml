@@ -39,7 +39,7 @@ jobs:
         run: pnpm check
       
       - name: Run tests with coverage
-        run: pnpm vitest run --coverage
+        run: cd packages/fastify-file-router && pnpm vitest run --coverage
       
       - name: Find coverage files
         id: coverage
