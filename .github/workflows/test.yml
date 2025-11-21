@@ -37,7 +37,10 @@ jobs:
       
       - name: Run linter
         run: pnpm check
-      
+
+      - name: Run tests
+        run: pnpm vitest
+
       - name: Run tests with coverage
         run: cd packages/fastify-file-router && pnpm vitest run --coverage
       
