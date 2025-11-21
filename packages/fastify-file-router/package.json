@@ -53,7 +53,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "tsc": "tsc --noEmit",
+    "tsc": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
     "publish": "rm -rf ./publish && mkdir ./publish && cp ./package.json ./publish/package.json && cp ../../LICENSE ./publish/LICENSE && cp ../../README.md ./publish/README.md && cp -r ./dist ./publish/dist && npm publish ./publish/ --access public"
