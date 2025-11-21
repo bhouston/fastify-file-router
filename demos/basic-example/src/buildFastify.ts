@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import Fastify, { type LogLevel } from 'fastify';
 import { fastifyFileRouter } from 'fastify-file-router';
@@ -30,6 +29,7 @@ export async function getApp(options: GetAppOptions = {}) {
     buildRoot: relativeBuild,
     extensions: ['.js', '.ts', '.jsx', '.tsx'],
     convention: 'remix',
+    // biome-ignore lint/performance/useTopLevelRegex: just a demo
     exclude: [/^[.|_].*/, /\.(test|spec)\.[jt]s$/, /__(test|spec)__/, /\.d\.ts$/],
     mount: '/',
   });
