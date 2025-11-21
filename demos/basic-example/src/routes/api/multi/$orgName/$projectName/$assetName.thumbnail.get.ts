@@ -29,4 +29,3 @@ export default async function handler(request: FastifyRequest, reply: FastifyRep
     assetName: params.assetName,
   });
 }
-

@@ -38,4 +38,3 @@ describe('GET /api/multi/$orgName/$projectName/$assetName/thumbnail', () => {
     expect(body.assetName).toBe('image-123');
   });
 });
-
