@@ -19,7 +19,7 @@ export const fastifyFileRouter = fp<FastifyFileRouterOptions>(
       logRoutes = false,
       // ignore files that start with a dot, or underscore.  Also ignore files that end in .test.js or .test.ts or include __tests__ in the path or include .d.ts
       // also ignore files that end in .spec.js or .spec.ts
-      exclude: excludePatterns = defaultExcludePatterns,
+      exclude: excludePatterns = defaultExcludePatterns.slice(),
     }: FastifyFileRouterOptions,
   ) => {
     const cwd = process.env.REMIX_ROOT ?? process.cwd();

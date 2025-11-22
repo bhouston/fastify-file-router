@@ -12,4 +12,4 @@ export const nextSegment = /^(?!\$)[[]?(?:\.\.\.|[^[\]&]*)[\]]?$/;
 export const nextParamRegex = /^\[(?<param>.*)\]$/;
 
 // Default exclude patterns
-export const defaultExcludePatterns = [/^[.|_].*/, /\.(?:test|spec)\.[jt]s$/, /__(?:test|spec)__/, /\.d\.ts$/];
+export const defaultExcludePatterns = [/^[.|_].*/, /\.(?:test|spec)\.[jt]s$/, /__(?:test|spec)__/, /\.d\.ts$/] as const;
