@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
@@ -215,5 +216,102 @@ describe('fastifyFileRouter - invalid options', () => {
     ).rejects.toThrow('Routes directory does not exist');
 
     await app.close();
+  });
+});
+
+describe('fastifyFileRouter - nested directory routes', () => {
+  test('scans and registers routes from nested directory structure', async () => {
+    const app = Fastify({ logger: false });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+
+    // Create a temporary directory structure with nested routes
+    const tempBuildRoot = path.join(__dirname, 'temp-test-plugin-nested');
+    const tempRoutesDir = path.join(tempBuildRoot, 'routes');
+    const nestedApiDir = path.join(tempRoutesDir, 'api');
+    const nestedUsersDir = path.join(nestedApiDir, 'users');
+    const nestedProjectsDir = path.join(nestedApiDir, 'projects', '$projectId');
+
+    try {
+      // Create directory structure
+      await fs.mkdir(nestedUsersDir, { recursive: true });
+      await fs.mkdir(nestedProjectsDir, { recursive: true });
+
+      // Create route files at different nesting levels
+      // Level 1: /api/health
+      const healthFile = path.join(nestedApiDir, 'health.get.ts');
+      await fs.writeFile(
+        healthFile,
+        `export default async function handler(request, reply) {
+          reply.status(200).send({ message: 'health check' });
+        }`,
+        'utf-8',
+      );
+
+      // Level 2: /api/users/list
+      const usersListFile = path.join(nestedUsersDir, 'list.get.ts');
+      await fs.writeFile(
+        usersListFile,
+        `export default async function handler(request, reply) {
+          reply.status(200).send({ users: [] });
+        }`,
+        'utf-8',
+      );
+
+      // Level 3: /api/projects/:projectId/details
+      const projectDetailsFile = path.join(nestedProjectsDir, 'details.get.ts');
+      await fs.writeFile(
+        projectDetailsFile,
+        `export default async function handler(request, reply) {
+          const params = request.params;
+          reply.status(200).send({ projectId: params.projectId, details: 'project details' });
+        }`,
+        'utf-8',
+      );
+
+      // Calculate relative paths from cwd
+      const buildRoot = path.relative(cwd, tempBuildRoot);
+      const routesDir = 'routes'; // Relative to buildRoot
+
+      // Register the plugin
+      await app.register(fastifyFileRouter, {
+        buildRoot,
+        routesDirs: [routesDir],
+        extensions: ['.ts'],
+        convention: 'remix',
+      });
+
+      await app.ready();
+
+      // Test route at level 1: /api/health
+      const healthResponse = await app.inject({
+        method: 'GET',
+        url: '/api/health',
+      });
+      expect(healthResponse.statusCode).toBe(200);
+      expect(healthResponse.json()).toEqual({ message: 'health check' });
+
+      // Test route at level 2: /api/users/list
+      const usersListResponse = await app.inject({
+        method: 'GET',
+        url: '/api/users/list',
+      });
+      expect(usersListResponse.statusCode).toBe(200);
+      expect(usersListResponse.json()).toEqual({ users: [] });
+
+      // Test route at level 3: /api/projects/:projectId/details
+      const projectDetailsResponse = await app.inject({
+        method: 'GET',
+        url: '/api/projects/test-project-123/details',
+      });
+      expect(projectDetailsResponse.statusCode).toBe(200);
+      const projectData = projectDetailsResponse.json();
+      expect(projectData).toHaveProperty('projectId', 'test-project-123');
+      expect(projectData).toHaveProperty('details', 'project details');
+
+      await app.close();
+    } finally {
+      // Clean up temporary directory
+      await fs.rm(tempBuildRoot, { recursive: true, force: true });
+    }
   });
 });

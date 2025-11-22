@@ -69,9 +69,12 @@ describe('toRouteNextStyle', () => {
   // });
 
   test('throws error for invalid segments', () => {
-    // Note: $id actually matches nextSegment regex, so it's valid
     expect(() => toRouteNextStyle(['api', 'test&bad'], '/test/file.ts')).toThrow(
       'Invalid segment "test&bad" in file /test/file.ts',
+    );
+    // $ prefix is Remix style, not Next.js
+    expect(() => toRouteNextStyle(['api', '$id'], '/test/file.ts')).toThrow(
+      'Invalid segment "$id" in file /test/file.ts',
     );
   });
 

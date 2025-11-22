@@ -8,15 +8,18 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
-        'node_modules/',
-        'dist/',
+        '**/node_modules',
+        '**/coverage',
+        '**/scripts',
+        '**/dist',
         '**/*.test.ts',
         '**/*.spec.ts',
-        '**/test/**',
-        '**/tests/**',
+        '**/test',
+        '**/tests',
         '**/*.d.ts',
         '**/vitest.config.ts',
-        '**/vitest.config.js'
+        '**/vitest.config.js',
+        '**/publish',
       ]
     }
   },

@@ -7,7 +7,8 @@ export const methodRegex = new RegExp(`^(${validMethods.join('|')})(\\..+)?$`);
 // Regex patterns for route conversion
 export const remixSegment = /^\$?[^[\]$&]*$/;
 export const remixParamRegex = /^\$(?<param>.*)$/;
-export const nextSegment = /^[[]?(?:\.\.\.|[^[\]&]*)[\]]?$/;
+// Next.js convention: segments must not start with $ (that's Remix style)
+export const nextSegment = /^(?!\$)[[]?(?:\.\.\.|[^[\]&]*)[\]]?$/;
 export const nextParamRegex = /^\[(?<param>.*)\]$/;
 
 // Default exclude patterns

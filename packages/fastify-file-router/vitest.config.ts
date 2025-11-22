@@ -12,7 +12,7 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'dist/',
-        'publish/',
+        '**/publish/**/*.*',
         '**/*.test.ts',
         '**/*.spec.ts',
         '**/test/**',
@@ -20,7 +20,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/vitest.config.ts',
         '**/vitest.config.js',
-        '**/temp-*/**'
+        '**/temp-*/**',
       ]
     }
   },
