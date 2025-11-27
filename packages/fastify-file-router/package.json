@@ -1,7 +1,7 @@
 {
   "name": "fastify-file-router",
   "description": "A fastify plugin that automatically registers routes from files in a directory.",
-  "version": "0.6.4",
+  "version": "1.6.4",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -56,6 +56,6 @@
     "tsc": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "publish": "rm -rf ./publish && mkdir ./publish && cp ./package.json ./publish/package.json && cp ../../LICENSE ./publish/LICENSE && cp ../../README.md ./publish/README.md && cp -r ./dist ./publish/dist && test -f ./publish/README.md || (echo 'ERROR: README.md not found in publish folder' && exit 1) && npm publish ./publish/ --access public"
+    "release": "pnpm run build && rm -rf ./publish && mkdir ./publish && cp ./package.json ./publish/package.json && cp ../../LICENSE ./publish/LICENSE && cp ../../README.md ./publish/README.md && cp -r ./dist ./publish/dist && test -f ./publish/README.md || (echo 'ERROR: README.md not found in publish folder' && exit 1) && npm publish ./publish/ --access public"
   }
 }

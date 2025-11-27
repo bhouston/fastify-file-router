@@ -177,6 +177,43 @@ npm run clean
 npm run publish
 ```
 
+### Publishing
+
+**IMPORTANT:** Always use `npm run publish` from the package directory (`packages/fastify-file-router/`), **NOT** `pnpm publish` from the root.
+
+The publish script ensures that the README.md file is properly included in the npm package. Using `pnpm publish` directly will publish without the README.
+
+**Steps to publish a new version:**
+
+1. **Bump the version** using the version script from the repository root:
+   ```sh
+   node scripts/version.js patch  # for patch versions
+   # or
+   node scripts/version.js minor  # for minor versions
+   # or
+   node scripts/version.js major  # for major versions
+   ```
+   This will update the version in `packages/fastify-file-router/package.json`, commit the change, and create a git tag.
+
+2. **Publish to npm** from the package directory:
+   ```sh
+   cd packages/fastify-file-router
+   npm run publish
+   ```
+   This will:
+   - Build the publish folder with all necessary files
+   - Copy the README.md from the repository root
+   - Verify that README.md exists in the publish folder
+   - Publish to npm with public access
+
+3. **Push the commits and tags** to the repository:
+   ```sh
+   git push
+   git push --tags
+   ```
+
+**Why this matters:** The publish script copies files to a `publish/` folder and explicitly includes the README.md. Using `pnpm publish` directly will skip this step and publish without the README, which is why we always use `npm run publish` from the package directory.
+
 Underneath the hood, we are using [NX](https://nx.dev) to manage the monorepo and shared scripts.
 
 [npm]: https://img.shields.io/npm/v/fastify-file-router
