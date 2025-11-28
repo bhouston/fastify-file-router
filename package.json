@@ -7,13 +7,11 @@
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "start": "pnpm --filter basic-example start",
-    "publish": "pnpm --filter fastify-file-router publish",
+    "make-release": "node scripts/make-release.ts packages/fastify-file-router",
     "clean": "rimraf dist packages/**/dist demos/**/dist .nx node_modules packages/**/node_modules demos/**/node_modules",
     "check": "biome check --write",
-    "test": "pnpm -r test",
     "tsc": "pnpm -r tsc",
-    "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build",
-    "prepare": "husky"
+    "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",
@@ -21,7 +19,6 @@
     "@vitest/coverage-v8": "^2.1.9",
     "chalk": "^5.6.2",
     "glob": "^13.0.0",
-    "husky": "^9.1.7",
     "jsonfile": "^6.2.0",
     "prompt-confirm": "^2.0.4",
     "rimraf": "^6.0.1",

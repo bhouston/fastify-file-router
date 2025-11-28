@@ -6,8 +6,7 @@
     "build": "tsc",
     "dev": "node --no-warnings --experimental-strip-types --experimental-transform-types --watch --watch-preserve-output src/server.ts",
     "start": "node --no-warnings --experimental-strip-types --experimental-transform-types src/server.ts",
-    "tsc": "tsc --noEmit",
-    "test": "vitest run"
+    "tsc": "tsc --noEmit"
   },
   "dependencies": {
     "fastify": "^5.0.0",
