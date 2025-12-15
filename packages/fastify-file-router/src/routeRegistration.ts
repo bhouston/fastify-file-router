@@ -1,3 +1,4 @@
+import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance, LogLevel } from 'fastify';
@@ -123,11 +124,12 @@ export async function registerRoutes(
   baseRootDir: string,
   logRoutes: boolean = false,
 ): Promise<void> {
-  const fileNames = await fs.readdir(dir);
+  const dirents = await fs.readdir(dir, { withFileTypes: true });
   const baseSegments = dir.replace(baseRootDir, '').split('/').filter(Boolean);
 
   await Promise.all(
-    fileNames.map(async (fileName) => {
+    dirents.map(async (dirent: Dirent) => {
+      const fileName = dirent.name;
       // Check if file should be excluded
       const matchingExcludePattern = shouldExcludeFile(fileName, excludePatterns);
       if (matchingExcludePattern) {
@@ -139,8 +141,7 @@ export async function registerRoutes(
 
       const fullPath = path.join(dir, fileName);
 
-      const stat = await fs.stat(fullPath);
-      if (stat.isDirectory()) {
+      if (dirent.isDirectory()) {
         await registerRoutes(
           fastify,
           mount,
