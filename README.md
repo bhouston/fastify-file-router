@@ -122,6 +122,96 @@ POST /api/users
 GET /api/users/:id
 ```
 
+## Custom Schema Types
+
+When using Fastify plugins that extend the schema with additional properties (such as OpenAPI/Swagger plugins), you can use `defineRoute` with a custom schema type that extends `FastifySchema`. This allows you to add plugin-specific metadata while maintaining full type safety.
+
+**Example: Using OpenAPI Schema Extensions**
+
+First, define your extended schema type:
+
+```ts
+import type { FastifySchema } from 'fastify';
+
+export interface OpenAPIFastifySchema extends FastifySchema {
+  description?: string;
+  summary?: string;
+  tags?: string[];
+  operationId?: string;
+  security?: Array<Record<string, string[]>>;
+}
+```
+
+Then use it with `defineRoute` using the `satisfies` operator to ensure type safety while preserving inference:
+
+```ts
+import { defineRoute } from 'fastify-file-router';
+import type { OpenAPIFastifySchema } from '../types/OpenAPIFastifySchema.js';
+
+const paramsSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' }
+  },
+  required: ['id']
+} as const;
+
+const bodySchema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    email: { type: 'string', format: 'email' }
+  },
+  required: ['name', 'email']
+} as const;
+
+export const route = defineRoute({
+  schema: {
+    description: 'Update a user by ID. Updates the user name and/or email.',
+    summary: 'Update user',
+    tags: ['users'],
+    operationId: 'update-user',
+    security: [{ jwtToken: [] }, { secretToken: [] }],
+    params: paramsSchema,
+    body: bodySchema,
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          email: { type: 'string' }
+        }
+      },
+      404: {
+        type: 'object',
+        properties: {
+          error: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  } satisfies OpenAPIFastifySchema,
+  handler: async (request, reply) => {
+    // request.params.id, request.body.name, and request.body.email are all correctly typed
+    const { id } = request.params;
+    const { name, email } = request.body;
+    
+    reply.status(200).send({ id, name, email });
+  }
+});
+```
+
+Using `satisfies OpenAPIFastifySchema` ensures that:
+- Your schema conforms to the extended schema type (including OpenAPI properties)
+- Type inference works correctly for `request.params`, `request.body`, `request.query`, and `request.headers`
+- You get full IntelliSense support for both standard Fastify schema properties and your custom extensions
+- TypeScript will error if your schema doesn't match the extended type
+
+**Alternative: Using Generic Type Parameter**
+
+You can also use the generic type parameter syntax `defineRoute<OpenAPIFastifySchema>()`, but note that this may require explicit type assertions for the schema object to preserve type inference for request parameters.
+
 ## Plugin Options
 
 This plugin supports the following customizable options.

@@ -55,7 +55,7 @@ function main() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { files: _files, ...packageJsonWithoutFiles } = packageJsonContent;
   const publishPackageJsonPath = join(publishPath, 'package.json');
-  writeFileSync(publishPackageJsonPath, JSON.stringify(packageJsonWithoutFiles, null, 2) + '\n');
+  writeFileSync(publishPackageJsonPath, `${JSON.stringify(packageJsonWithoutFiles, null, 2)}\n`);
 
   // Copy .npmignore
   console.log(`Copying .npmignore`);
