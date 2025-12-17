@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -49,8 +49,20 @@ function main() {
   }
   cpSync(distPath, join(publishPath, 'dist'), { recursive: true });
 
-  console.log(`Copying package.json`);
-  cpSync(packageJsonPath, join(publishPath, 'package.json'));
+  // Copy package.json and remove the "files" field so .npmignore works properly
+  console.log(`Copying package.json (removing files field)`);
+  const packageJsonContent = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { files: _files, ...packageJsonWithoutFiles } = packageJsonContent;
+  const publishPackageJsonPath = join(publishPath, 'package.json');
+  writeFileSync(publishPackageJsonPath, JSON.stringify(packageJsonWithoutFiles, null, 2) + '\n');
+
+  // Copy .npmignore
+  console.log(`Copying .npmignore`);
+  const npmignorePath = join(resolvedPackagePath, '.npmignore');
+  if (existsSync(npmignorePath)) {
+    cpSync(npmignorePath, join(publishPath, '.npmignore'));
+  }
 
   console.log(`Copying LICENSE from root`);
   const licensePath = join(rootPath, 'LICENSE');
