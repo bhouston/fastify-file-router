@@ -25,12 +25,6 @@
   "bugs": {
     "url": "https://github.com/bhouston/fastify-file-router/issues"
   },
-  "files": [
-    "dist",
-    "package.json",
-    "README.md",
-    "LICENSE"
-  ],
   "dependencies": {
     "fastify": "^5.0.0",
     "fastify-plugin": "^5.0.1",
