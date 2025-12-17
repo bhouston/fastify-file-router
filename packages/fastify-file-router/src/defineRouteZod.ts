@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest, FastifySchema } from 'fastify';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 /**
  * Schema definition using Zod schemas instead of JSON Schema
@@ -44,11 +44,7 @@ export interface DefinedZodRoute<T extends ZodRouteSchema> {
  * Converts a Zod schema to JSON Schema, removing the $schema property
  */
 function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
-  // Import zod at runtime - users must have zod installed as a peer dependency
-  // Using dynamic import to avoid bundling zod if not needed
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const zod = require('zod') as typeof import('zod');
-  const jsonSchema = zod.toJSONSchema(schema, {
+  const jsonSchema = z.toJSONSchema(schema, {
     target: 'draft-2020-12',
     unrepresentable: 'any',
   });

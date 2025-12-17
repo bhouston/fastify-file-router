@@ -1,7 +1,7 @@
 {
   "name": "fastify-file-router",
   "description": "A fastify plugin that automatically registers routes from files in a directory.",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -31,14 +31,14 @@
     "json-schema-to-ts": "^3.1.1"
   },
   "peerDependencies": {
-    "fastify": "^5.0.0",
-    "zod": "^4.0.0"
+    "fastify": "^5",
+    "zod": "^4"
   },
   "devDependencies": {
     "@types/node": "^24",
     "node-mocks-http": "^1.16.1",
     "vitest": "^2.1.8",
-    "zod": "^4.0.0"
+    "zod": "^4"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

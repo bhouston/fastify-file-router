@@ -3,21 +3,25 @@ import { z } from 'zod';
 
 // PATCH /api/users/:id
 
+const querystringSchema = z.object({
+  include: z.enum(['profile', 'settings']).optional(),
+  fields: z.string().optional(),
+});
+
+const bodySchema = z.strictObject({
+  name: z.string().min(1, 'Name is required').optional(),
+  email: z.string().email('Invalid email format').optional(),
+  age: z.number().int().min(0).max(150).optional(),
+});
+
 // Define Zod schemas directly - types are automatically inferred!
 export const route = defineRouteZod({
   schema: {
     params: z.object({
       id: z.string().min(1, 'ID is required'),
     }),
-    querystring: z.object({
-      include: z.enum(['profile', 'settings']).optional(),
-      fields: z.string().optional(),
-    }),
-    body: z.object({
-      name: z.string().min(1, 'Name is required').optional(),
-      email: z.string().email('Invalid email format').optional(),
-      age: z.number().int().min(0).max(150).optional(),
-    }),
+    querystring: querystringSchema,
+    body: bodySchema,
   },
   handler: async (request, reply) => {
     // All types are automatically inferred from the Zod schemas!
