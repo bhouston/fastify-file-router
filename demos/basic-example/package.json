@@ -3,10 +3,10 @@
   "type": "module",
   "src": "src/index.ts",
   "scripts": {
-    "build": "tsc",
-    "dev": "node --no-warnings --experimental-strip-types --experimental-transform-types --watch --watch-preserve-output src/server.ts",
-    "start": "node --no-warnings --experimental-strip-types --experimental-transform-types src/server.ts",
-    "tsc": "tsc --noEmit"
+    "build": "tsgo",
+    "dev": "node --watch --watch-preserve-output src/server.ts",
+    "start": "node src/server.ts",
+    "tsgo": "tsgo --noEmit"
   },
   "dependencies": {
     "fastify": "^5.0.0",

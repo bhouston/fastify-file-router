@@ -10,7 +10,7 @@
     "make-release": "node scripts/make-release.ts packages/fastify-file-router",
     "clean": "rimraf dist packages/**/dist demos/**/dist .nx node_modules packages/**/node_modules demos/**/node_modules",
     "check": "biome check --write",
-    "tsc": "pnpm -r tsc",
+    "tsgo": "pnpm -r tsgo",
     "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build"
   },
   "devDependencies": {
@@ -23,7 +23,7 @@
     "prompt-confirm": "^2.0.4",
     "rimraf": "^6.0.1",
     "semver": "^7.7.3",
-    "typescript": "^5",
+    "@typescript/native-preview": "7.0.0-dev.20251202.1",
     "vitest": "^2.1.9"
   },
   "engines": {

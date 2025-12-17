@@ -53,8 +53,8 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "tsc": "tsc"
+    "build": "tsgo",
+    "dev": "tsgo --watch",
+    "tsgo": "tsgo"
   }
 }
