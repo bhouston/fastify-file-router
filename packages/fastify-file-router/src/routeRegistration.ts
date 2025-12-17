@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { FastifyInstance, LogLevel } from 'fastify';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
 import { toHttpMethod, toRouteNextStyle, toRouteRemixStyle } from './routeConverter.js';
-import type { RouteModule } from './types.js';
+import type { RouteHandler, RouteModule, RouteSchema } from './types.js';
 
 /**
  * Parses a filename into its components: route segments, method, and extension.
@@ -175,25 +175,43 @@ export async function registerRoutes(
       const handlerModule = (await import(fullPath)) as RouteModule;
       const url = buildUrl(routePath, mount);
 
-      // Validate handler exports
-      if (typeof handlerModule.default !== 'function') {
-        throw new Error(`Default export in file ${fullPath} is not a function`);
-      }
-      if (handlerModule.schema && typeof handlerModule.schema !== 'object') {
-        throw new Error(`Schema export in file ${fullPath} is not an object`);
+      // Check if this is a defineRoute pattern (route export)
+      let handler: RouteHandler;
+      let schema: RouteSchema | undefined;
+
+      if (handlerModule.route) {
+        // New pattern: route defined using defineRoute()
+        if (typeof handlerModule.route.handler !== 'function') {
+          throw new Error(`Route handler in file ${fullPath} is not a function`);
+        }
+        if (handlerModule.route.schema && typeof handlerModule.route.schema !== 'object') {
+          throw new Error(`Route schema in file ${fullPath} is not an object`);
+        }
+        handler = handlerModule.route.handler as RouteHandler;
+        schema = handlerModule.route.schema;
+      } else {
+        // Legacy pattern: default export + optional schema export
+        if (typeof handlerModule.default !== 'function') {
+          throw new Error(`Default export in file ${fullPath} is not a function`);
+        }
+        if (handlerModule.schema && typeof handlerModule.schema !== 'object') {
+          throw new Error(`Schema export in file ${fullPath} is not an object`);
+        }
+        handler = handlerModule.default;
+        schema = handlerModule.schema;
       }
 
       // Check if logLevel is verbose (debug or trace)
       if (logRoutes) {
         fastify.log[logLevel](
-          `Registering route ${typedMethod.toUpperCase()} ${url} ${handlerModule.schema ? '(with schema)' : ''} from ${fullPath}`,
+          `Registering route ${typedMethod.toUpperCase()} ${url} ${schema ? '(with schema)' : ''} from ${fullPath}`,
         );
       }
       fastify.route({
         method: typedMethod,
         url,
-        schema: handlerModule.schema,
-        handler: handlerModule.default,
+        schema,
+        handler,
       });
     }),
   );

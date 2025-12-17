@@ -19,6 +19,12 @@ _NOTE: This is an ESM-only package._
 npm install fastify-file-router
 ```
 
+If you plan to use `defineRoute()` for type-safe routes, you'll also need to install `json-schema-to-ts`:
+
+```sh
+npm install json-schema-to-ts
+```
+
 ## Example
 
 You register the plugin using its defaults or by specifying [additional options](#plugin-options):
@@ -60,10 +66,50 @@ export default async function handler(
 }
 ```
 
-If you want to specify a schema, you can optionally export it as well:
+If you want to specify a schema, you can optionally export it as well. There are two ways to define routes with schemas:
+
+### Using `defineRoute()` (Recommended)
+
+The `defineRoute()` helper automatically infers types from your JSON schemas, eliminating the need for manual type assertions:
 
 ```ts
 // routes/api.users.$id.get.ts
+
+import { defineRoute } from 'fastify-file-router';
+
+export const route = defineRoute({
+  schema: {
+    params: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' }
+      },
+      required: ['id']
+    } as const
+  },
+  handler: async (request, reply) => {
+    // request.params.id is automatically typed as string - no manual type assertion needed!
+    const { id } = request.params;
+
+    reply.status(200).send({
+      id,
+      name: 'John Doe',
+      email: 'john.doe@microsoft.com'
+    });
+  }
+});
+```
+
+### Legacy Pattern (Still Supported)
+
+You can also use the traditional pattern with separate schema and handler exports:
+
+```ts
+// routes/api.users.$id.get.ts
+
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { RouteSchema } from 'fastify-file-router';
+import type { FromSchema } from 'json-schema-to-ts';
 
 const ParamsSchema = {
   type: 'object',
@@ -80,7 +126,7 @@ export const schema: RouteSchema = {
 };
 
 export default async function handler(
-  request: FastifyRequest,
+  request: FastifyRequest<{ Params: ParamsSchema }>,
   reply: FastifyReply
 ) {
   const { id } = request.params as ParamsSchema;
@@ -92,6 +138,12 @@ export default async function handler(
   });
 }
 ```
+
+**Benefits of `defineRoute()`:**
+- Automatic type inference - no need to manually create TypeScript types from schemas
+- No type assertions required - `request.params`, `request.body`, `request.query` are automatically typed
+- Cleaner code - less boilerplate and fewer imports needed
+- Type safety - TypeScript will catch errors at compile time if you try to access properties that don't exist in your schema
 
 The above will result in these routes being registered:
 

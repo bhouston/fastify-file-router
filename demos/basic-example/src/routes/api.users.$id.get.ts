@@ -1,31 +1,27 @@
-import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { RouteSchema } from 'fastify-file-router';
-import type { FromSchema } from 'json-schema-to-ts';
+import { defineRoute } from 'fastify-file-router';
 
 // GET /api/users/$id
 
-const ParamsSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string' },
+export const route = defineRoute({
+  schema: {
+    params: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+      },
+      required: ['id'],
+    } as const,
   },
-  required: ['id'],
-} as const;
+  handler: async (request, reply) => {
+    // request.params.id is automatically typed as string - no manual type assertion needed!
+    const { id } = request.params;
+    console.log({ id });
 
-type ParamsSchema = FromSchema<typeof ParamsSchema>;
-
-export const schema: RouteSchema = {
-  params: ParamsSchema,
-};
-
-export default async function handler(request: FastifyRequest<{ Params: ParamsSchema }>, reply: FastifyReply) {
-  const { id } = request.params;
-  console.log({ id });
-
-  // send a response to the client
-  reply.status(200).send({
-    id,
-    name: 'John Doe',
-    email: 'john.doe@microsoft.com',
-  });
-}
+    // send a response to the client
+    reply.status(200).send({
+      id,
+      name: 'John Doe',
+      email: 'john.doe@microsoft.com',
+    });
+  },
+});
