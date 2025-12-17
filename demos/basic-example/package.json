@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "fastify": "^5.0.0",
-    "fastify-file-router": "workspace:*"
+    "fastify-file-router": "workspace:*",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@vitest/ui": "^2.1.8",

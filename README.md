@@ -122,6 +122,60 @@ POST /api/users
 GET /api/users/:id
 ```
 
+## Using Zod Schemas
+
+You can use [Zod](https://zod.dev) schemas directly with `defineRouteZod`, which automatically extracts TypeScript types from Zod schemas using `z.infer` and converts them to JSON Schema for Fastify's runtime validation. This is the recommended approach when using Zod.
+
+**Route with Zod Schemas (`routes/api/users/$id.patch.ts`)**
+
+```ts
+import { defineRouteZod } from 'fastify-file-router';
+import { z } from 'zod';
+
+export const route = defineRouteZod({
+  schema: {
+    params: z.object({
+      id: z.string().min(1, 'ID is required'),
+    }),
+    querystring: z.object({
+      include: z.enum(['profile', 'settings']).optional(),
+      fields: z.string().optional(),
+    }),
+    body: z.object({
+      name: z.string().min(1, 'Name is required').optional(),
+      email: z.string().email('Invalid email format').optional(),
+      age: z.number().int().min(0).max(150).optional(),
+    }),
+  },
+  handler: async (request, reply) => {
+    // All types are automatically inferred from the Zod schemas!
+    // request.params.id is typed as string
+    // request.query.include is typed as 'profile' | 'settings' | undefined
+    // request.body.name, email, age are correctly typed
+    const { id } = request.params;
+    const { include, fields } = request.query;
+    const { name, email, age } = request.body;
+
+    // Type inference verification: these operations prove types are correctly inferred
+    const idUpper = id.toUpperCase(); // id is string
+    if (include === 'profile') {
+      // TypeScript knows include is 'profile' here
+    }
+    const nameUpper = name?.toUpperCase(); // name is string | undefined
+    const ageNextYear = age !== undefined ? age + 1 : undefined; // age is number | undefined
+
+    reply.status(200).send({
+      id,
+      name: name ?? 'John Doe',
+      email: email ?? 'john.doe@example.com',
+      age: age ?? 30,
+      included: include,
+      fields,
+    });
+  },
+});
+```
+
 ## Custom Schema Types
 
 When using Fastify plugins that extend the schema with additional properties (such as OpenAPI/Swagger plugins), you can use `defineRoute` with a custom schema type that extends `FastifySchema`. This allows you to add plugin-specific metadata while maintaining full type safety.
