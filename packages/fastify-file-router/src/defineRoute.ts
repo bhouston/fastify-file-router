@@ -6,42 +6,30 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
  * Returns unknown for properties that don't exist (matching Fastify's default behavior)
  */
 type ExtractSchemaTypes<T extends FastifySchema> = {
-	Params: 'params' extends keyof T
-		? T['params'] extends JSONSchema
-			? FromSchema<T['params']>
-			: unknown
-		: unknown;
-	Body: 'body' extends keyof T
-		? T['body'] extends JSONSchema
-			? FromSchema<T['body']>
-			: unknown
-		: unknown;
-	Querystring: 'querystring' extends keyof T
-		? T['querystring'] extends JSONSchema
-			? FromSchema<T['querystring']>
-			: unknown
-		: unknown;
-	Headers: 'headers' extends keyof T
-		? T['headers'] extends JSONSchema
-			? FromSchema<T['headers']>
-			: unknown
-		: unknown;
+  Params: 'params' extends keyof T ? (T['params'] extends JSONSchema ? FromSchema<T['params']> : unknown) : unknown;
+  Body: 'body' extends keyof T ? (T['body'] extends JSONSchema ? FromSchema<T['body']> : unknown) : unknown;
+  Querystring: 'querystring' extends keyof T
+    ? T['querystring'] extends JSONSchema
+      ? FromSchema<T['querystring']>
+      : unknown
+    : unknown;
+  Headers: 'headers' extends keyof T ? (T['headers'] extends JSONSchema ? FromSchema<T['headers']> : unknown) : unknown;
 };
 
 /**
  * Route handler function type with inferred types from schema
  */
 type TypedRouteHandler<T extends FastifySchema> = (
-	request: FastifyRequest<ExtractSchemaTypes<T>>,
-	reply: FastifyReply,
+  request: FastifyRequest<ExtractSchemaTypes<T>>,
+  reply: FastifyReply,
 ) => Promise<unknown> | unknown;
 
 /**
  * Route module returned by defineRoute
  */
 export interface DefinedRoute<T extends FastifySchema> {
-	schema: T;
-	handler: TypedRouteHandler<T>;
+  schema: T;
+  handler: TypedRouteHandler<T>;
 }
 
 /**
@@ -66,9 +54,8 @@ export interface DefinedRoute<T extends FastifySchema> {
  * ```
  */
 export function defineRoute<T extends FastifySchema>(route: {
-	schema: T;
-	handler: TypedRouteHandler<T>;
+  schema: T;
+  handler: TypedRouteHandler<T>;
 }): DefinedRoute<T> {
-	return route;
+  return route;
 }
-

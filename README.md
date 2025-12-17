@@ -16,13 +16,7 @@ Supports both JavaScript and TypeScript (on Node 22+.)
 _NOTE: This is an ESM-only package._
 
 ```sh
-npm install fastify-file-router
-```
-
-If you plan to use `defineRoute()` for type-safe routes, you'll also need to install `json-schema-to-ts`:
-
-```sh
-npm install json-schema-to-ts
+pnpm install fastify-file-router
 ```
 
 ## Example
@@ -51,30 +45,23 @@ You can use any combination of file names and directories. We support either [Ne
 └── api.users.$id.get.ts // named parameter id, Remix-style
 ```
 
-Inside each route handler file, you make the default export the route handler. Here is a simple example:
+Inside each route handler file, use the `defineRoute()` helper to define your routes. This ensures full type safety for your request parameters, body, querystring, and headers based on the schemas you define.
+
+**Simple Route (`routes/api/health/get.ts`)**
 
 ```ts
-// routes/api/health/get.ts
+import { defineRoute } from 'fastify-file-router';
 
-import type { FastifyReply, FastifyRequest } from 'fastify';
-
-export default async function handler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
-  reply.status(204).send();
-}
+export const route = defineRoute({
+  handler: async (request, reply) => {
+    reply.status(204).send();
+  }
+});
 ```
 
-If you want to specify a schema, you can optionally export it as well. There are two ways to define routes with schemas:
-
-### Using `defineRoute()` (Recommended)
-
-The `defineRoute()` helper automatically infers types from your JSON schemas, eliminating the need for manual type assertions:
+**Route with Parameters (`routes/api.users.$id.get.ts`)**
 
 ```ts
-// routes/api.users.$id.get.ts
-
 import { defineRoute } from 'fastify-file-router';
 
 export const route = defineRoute({
@@ -88,7 +75,7 @@ export const route = defineRoute({
     } as const
   },
   handler: async (request, reply) => {
-    // request.params.id is automatically typed as string - no manual type assertion needed!
+    // request.params.id is correctly typed as string
     const { id } = request.params;
 
     reply.status(200).send({
@@ -100,50 +87,30 @@ export const route = defineRoute({
 });
 ```
 
-### Legacy Pattern (Still Supported)
-
-You can also use the traditional pattern with separate schema and handler exports:
+**Route with Request Body (`routes/api/users/post.ts`)**
 
 ```ts
-// routes/api.users.$id.get.ts
+import { defineRoute } from 'fastify-file-router';
 
-import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { RouteSchema } from 'fastify-file-router';
-import type { FromSchema } from 'json-schema-to-ts';
-
-const ParamsSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string' }
+export const route = defineRoute({
+  schema: {
+    body: {
+      type: 'object',
+      properties: {
+        email: { type: 'string' },
+        password: { type: 'string' }
+      },
+      required: ['email', 'password']
+    } as const
   },
-  required: ['id']
-} as const;
+  handler: async (request, reply) => {
+    // request.body.email and request.body.password are correctly typed
+    const { email, password } = request.body;
 
-type ParamsSchema = FromSchema<typeof ParamsSchema>;
-
-export const schema: RouteSchema = {
-  params: ParamsSchema
-};
-
-export default async function handler(
-  request: FastifyRequest<{ Params: ParamsSchema }>,
-  reply: FastifyReply
-) {
-  const { id } = request.params as ParamsSchema;
-
-  reply.status(200).send({
-    id,
-    name: 'John Doe',
-    email: 'john.doe@microsoft.com'
-  });
-}
+    reply.status(201).send({ message: 'User created successfully' });
+  }
+});
 ```
-
-**Benefits of `defineRoute()`:**
-- Automatic type inference - no need to manually create TypeScript types from schemas
-- No type assertions required - `request.params`, `request.body`, `request.query` are automatically typed
-- Cleaner code - less boilerplate and fewer imports needed
-- Type safety - TypeScript will catch errors at compile time if you try to access properties that don't exist in your schema
 
 The above will result in these routes being registered:
 
@@ -205,68 +172,27 @@ If you want to contribute, just check out [this git project](https://github.com/
 
 ```sh
 # install dependencies
-npm install
+pnpm install
 
 # hot-reloading development server
-npm run dev
+pnpm dev
 
 # build & start server
-npm run build && npm run start
+pnpm build && pnpm start
 
-# prettify
-npm run format
+# prettify/lint via biome
+pnpm biome check --write
 
-# eslint
-npm run lint
 
-# build and run tests
-npm run test
+# tests
+pnpm vitest
 
 # clean everything, should be like doing a fresh git checkout of the repo.
-npm run clean
+pnpm clean
 
 # publish the npm package
-npm run publish
+pnpm make-release
 ```
-
-### Publishing
-
-**IMPORTANT:** Always use `npm run publish` from the package directory (`packages/fastify-file-router/`), **NOT** `pnpm publish` from the root.
-
-The publish script ensures that the README.md file is properly included in the npm package. Using `pnpm publish` directly will publish without the README.
-
-**Steps to publish a new version:**
-
-1. **Bump the version** using the version script from the repository root:
-   ```sh
-   node scripts/version.js patch  # for patch versions
-   # or
-   node scripts/version.js minor  # for minor versions
-   # or
-   node scripts/version.js major  # for major versions
-   ```
-   This will update the version in `packages/fastify-file-router/package.json`, commit the change, and create a git tag.
-
-2. **Publish to npm** from the package directory:
-   ```sh
-   cd packages/fastify-file-router
-   npm run publish
-   ```
-   This will:
-   - Build the publish folder with all necessary files
-   - Copy the README.md from the repository root
-   - Verify that README.md exists in the publish folder
-   - Publish to npm with public access
-
-3. **Push the commits and tags** to the repository:
-   ```sh
-   git push
-   git push --tags
-   ```
-
-**Why this matters:** The publish script copies files to a `publish/` folder and explicitly includes the README.md. Using `pnpm publish` directly will skip this step and publish without the README, which is why we always use `npm run publish` from the package directory.
-
-Underneath the hood, we are using [NX](https://nx.dev) to manage the monorepo and shared scripts.
 
 [npm]: https://img.shields.io/npm/v/fastify-file-router
 [npm-url]: https://www.npmjs.com/package/fastify-file-router

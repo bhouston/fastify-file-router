@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "fastify": "^5.0.0",
-    "fastify-file-router": "workspace:*",
-    "json-schema-to-ts": "^3.1.1"
+    "fastify-file-router": "workspace:*"
   },
   "devDependencies": {
     "@vitest/ui": "^2.1.8",
+    "json-schema-to-ts": "^3.1.1",
     "vitest": "^2.1.8"
   }
 }
