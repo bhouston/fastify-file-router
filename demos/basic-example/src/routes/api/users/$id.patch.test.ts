@@ -117,4 +117,3 @@ describe('PATCH /api/users/:id', () => {
     expect(body).toHaveProperty('age'); // Default value
   });
 });
-

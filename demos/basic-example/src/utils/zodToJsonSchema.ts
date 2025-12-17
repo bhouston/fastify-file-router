@@ -36,4 +36,3 @@ export const toJsonSchema = (schema: z.ZodTypeAny) => {
   delete jsonSchema.$schema;
   return jsonSchema;
 };
-

@@ -17,4 +17,3 @@ export interface OpenAPIFastifySchema extends FastifySchema {
   /** Security requirements for the endpoint */
   security?: Array<Record<string, string[]>>;
 }
-
