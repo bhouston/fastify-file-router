@@ -18,8 +18,8 @@ export const schema: RouteSchema = {
   params: ParamsSchema,
 };
 
-export default async function handler(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as ParamsSchema;
+export default async function handler(request: FastifyRequest<{ Params: ParamsSchema }>, reply: FastifyReply) {
+  const { id } = request.params;
   console.log({ id });
 
   // send a response to the client
