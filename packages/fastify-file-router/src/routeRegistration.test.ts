@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import { describe, expect, test } from 'vitest';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
-import { buildUrl, convertRoutePath, parseFileName, shouldExcludeFile } from './routeRegistration.js';
+import { buildUrl, convertRoutePath, parseFileName, registerRoutes, shouldExcludeFile } from './routeRegistration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,9 +109,6 @@ describe('routeRegistration integration', () => {
     // Path from packages/fastify-file-router/src to demos/basic-example/src/routes
     const demoRoutesDir = path.resolve(__dirname, '../../../demos/basic-example/src/routes');
 
-    // Import registerRoutes dynamically to avoid circular dependencies
-    const { registerRoutes } = await import('./routeRegistration.js');
-
     await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], demoRoutesDir, demoRoutesDir);
 
     // Check that routes are registered by testing actual endpoints
@@ -159,8 +156,6 @@ describe('routeRegistration integration', () => {
       await fs.mkdir(tempDir, { recursive: true });
       await fs.writeFile(tempFile, 'export default "not a function";\n', 'utf-8');
 
-      const { registerRoutes } = await import('./routeRegistration.js');
-
       await expect(
         registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
       ).rejects.toThrow('Default export in file');
@@ -186,8 +181,6 @@ describe('routeRegistration integration', () => {
         `export default async function handler() {}\nexport const schema = "not an object";\n`,
         'utf-8',
       );
-
-      const { registerRoutes } = await import('./routeRegistration.js');
 
       await expect(
         registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
@@ -218,7 +211,6 @@ describe('routeRegistration integration', () => {
       await fs.mkdir(tempDir, { recursive: true });
       await fs.writeFile(tempFile, 'export default async function handler() {}\n', 'utf-8');
 
-      const { registerRoutes } = await import('./routeRegistration.js');
       await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/^\./], tempDir, tempDir);
 
       expect(logMessages.some((msg) => msg.includes('.hidden.get.ts') && msg.includes('exclude pattern'))).toBe(true);
@@ -245,7 +237,6 @@ describe('routeRegistration integration', () => {
       await fs.mkdir(tempDir, { recursive: true });
       await fs.writeFile(tempFile, 'export default async function handler() {}\n', 'utf-8');
 
-      const { registerRoutes } = await import('./routeRegistration.js');
       await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir, true);
 
       expect(logMessages.some((msg) => msg.includes('Registering route') && msg.includes('GET'))).toBe(true);
@@ -272,7 +263,6 @@ describe('routeRegistration integration', () => {
       await fs.mkdir(tempDir, { recursive: true });
       await fs.writeFile(tempFile, `export default async function handler() {}\nexport const schema = {};\n`, 'utf-8');
 
-      const { registerRoutes } = await import('./routeRegistration.js');
       await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir, true);
 
       expect(logMessages.some((msg) => msg.includes('Registering route') && msg.includes('(with schema)'))).toBe(true);
@@ -299,7 +289,6 @@ describe('routeRegistration integration', () => {
       await fs.mkdir(tempDir, { recursive: true });
       await fs.writeFile(tempFile, 'export default async function handler() {}\n', 'utf-8');
 
-      const { registerRoutes } = await import('./routeRegistration.js');
       // Only allow .ts extensions, but file is .js
       await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir);
 

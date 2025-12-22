@@ -1,7 +1,9 @@
 import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { FastifyInstance, LogLevel } from 'fastify';
+import type { FastifyInstance, FastifySchema, LogLevel } from 'fastify';
+import type { z } from 'zod';
+import { formatZodError } from './defineRouteZod.js';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
 import { toHttpMethod, toRouteNextStyle, toRouteRemixStyle } from './routeConverter.js';
 import type { RouteHandler, RouteModule, RouteSchema } from './types.js';
@@ -207,12 +209,110 @@ export async function registerRoutes(
           `Registering route ${typedMethod.toUpperCase()} ${url} ${schema ? '(with schema)' : ''} from ${fullPath}`,
         );
       }
-      fastify.route({
+
+      // Check if this is a Zod route (has __zodSchemas property)
+      const zodSchemas =
+        schema && '__zodSchemas' in schema ? (schema as { __zodSchemas: unknown }).__zodSchemas : undefined;
+
+      const routeOptions: Parameters<typeof fastify.route>[0] = {
         method: typedMethod,
         url,
-        schema,
+        schema: zodSchemas ? undefined : schema, // Don't pass schema to Fastify for Zod routes (Zod will validate)
         handler,
-      });
+      };
+
+      // Add preValidation hook for Zod routes
+      if (zodSchemas) {
+        routeOptions.preValidation = async (request, reply) => {
+          type ZodTypeAny = z.ZodTypeAny;
+          const zodSchema = zodSchemas as {
+            params?: ZodTypeAny;
+            querystring?: ZodTypeAny;
+            body?: ZodTypeAny;
+            headers?: ZodTypeAny;
+          };
+
+          // Validate params
+          if (zodSchema.params) {
+            const paramsResult = zodSchema.params.safeParse(request.params);
+            if (!paramsResult.success) {
+              return reply.status(400).send({
+                error: formatZodError(paramsResult.error, 'params'),
+              });
+            }
+            // Replace request.params with validated data
+            (request as { params: unknown }).params = paramsResult.data;
+          }
+
+          // Validate querystring (Fastify uses request.query, not request.querystring)
+          if (zodSchema.querystring) {
+            const querystringResult = zodSchema.querystring.safeParse(request.query);
+            if (!querystringResult.success) {
+              return reply.status(400).send({
+                error: formatZodError(querystringResult.error, 'querystring'),
+              });
+            }
+            // Replace request.query with validated data
+            (request as { query: unknown }).query = querystringResult.data;
+          }
+
+          // Validate body
+          if (zodSchema.body) {
+            const bodyResult = zodSchema.body.safeParse(request.body);
+            if (!bodyResult.success) {
+              return reply.status(400).send({
+                error: formatZodError(bodyResult.error, 'body'),
+              });
+            }
+            // Replace request.body with validated data
+            (request as { body: unknown }).body = bodyResult.data;
+          }
+
+          // Validate headers
+          if (zodSchema.headers) {
+            const headersResult = zodSchema.headers.safeParse(request.headers);
+            if (!headersResult.success) {
+              return reply.status(400).send({
+                error: formatZodError(headersResult.error, 'headers'),
+              });
+            }
+            // Replace request.headers with validated data
+            (request as { headers: unknown }).headers = headersResult.data;
+          }
+        };
+
+        // Include schema for OpenAPI documentation, but without validation properties
+        // so Fastify doesn't validate (Zod handles validation via preValidation hook)
+        // We'll re-add validation properties for OpenAPI docs only
+        const openApiSchema = { ...schema } as FastifySchema & { __zodSchemas?: unknown };
+        delete openApiSchema.__zodSchemas;
+
+        // Remove validation properties to prevent Fastify from validating
+        // (Zod will validate in preValidation hook)
+        const params = openApiSchema.params;
+        const querystring = openApiSchema.querystring;
+        const body = openApiSchema.body;
+        const headers = openApiSchema.headers;
+        delete openApiSchema.params;
+        delete openApiSchema.querystring;
+        delete openApiSchema.body;
+        delete openApiSchema.headers;
+
+        // Re-add validation properties for OpenAPI documentation
+        // Fastify will use these for OpenAPI/Swagger generation but won't validate
+        // because we're setting them after the initial schema check
+        const finalSchema: FastifySchema = {
+          ...openApiSchema,
+        };
+        if (params) finalSchema.params = params;
+        if (querystring) finalSchema.querystring = querystring;
+        if (body) finalSchema.body = body;
+        if (headers) finalSchema.headers = headers;
+
+        routeOptions.schema = finalSchema;
+      }
+
+      fastify.route(routeOptions);
     }),
   );
 }

@@ -36,7 +36,7 @@ type TypedZodRouteHandler<T extends ZodRouteSchema> = (
  * Route module returned by defineRouteZod
  */
 export interface DefinedZodRoute<T extends ZodRouteSchema> {
-  schema: FastifySchema;
+  schema: FastifySchema & { __zodSchemas?: T };
   handler: TypedZodRouteHandler<T>;
 }
 
@@ -51,6 +51,19 @@ function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
   // Remove $schema property as Fastify doesn't need it
   const { $schema: _, ...rest } = jsonSchema;
   return rest;
+}
+
+/**
+ * Formats Zod validation errors into a single error message string.
+ * Format: "Bad Request: [component] - [comma-separated list of issues]"
+ * This function is exported so it can be used in routeRegistration.ts
+ */
+export function formatZodError(error: z.ZodError, component: string): string {
+  const issueMessages = error.issues.map((issue) => {
+    const path = issue.path.length > 0 ? issue.path.join('.') + ': ' : '';
+    return `${path}${issue.message}`;
+  });
+  return `Bad Request: ${component} - ${issueMessages.join(', ')}`;
 }
 
 /**
@@ -111,8 +124,11 @@ export function defineRouteZod<T extends ZodRouteSchema>(route: {
     }
   }
 
+  // Store Zod schemas on the schema object so routeRegistration can access them
+  (fastifySchema as FastifySchema & { __zodSchemas: T }).__zodSchemas = zodSchema;
+
   return {
-    schema: fastifySchema,
-    handler: route.handler,
+    schema: fastifySchema as FastifySchema & { __zodSchemas: T },
+    handler: route.handler, // Don't wrap here, we'll use preValidation hook instead
   };
 }

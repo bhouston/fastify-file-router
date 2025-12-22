@@ -67,6 +67,10 @@ describe('PATCH /api/users/:id', () => {
     });
     // Should fail validation for invalid enum value
     expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+    expect(body.error).toContain('Bad Request: querystring');
+    expect(body.error).toContain('include');
   });
 
   test('validates email format', async () => {
@@ -78,6 +82,11 @@ describe('PATCH /api/users/:id', () => {
       },
     });
     expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+    expect(body.error).toContain('Bad Request: body');
+    expect(body.error).toContain('email');
+    expect(body.error).toContain('Invalid email format');
   });
 
   test('validates age range', async () => {
@@ -89,6 +98,10 @@ describe('PATCH /api/users/:id', () => {
       },
     });
     expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+    expect(body.error).toContain('Bad Request: body');
+    expect(body.error).toContain('age');
   });
 
   test('validates id parameter is not empty', async () => {
@@ -101,6 +114,56 @@ describe('PATCH /api/users/:id', () => {
     });
     // Should fail validation because id is required and min length is 1
     expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+    expect(body.error).toContain('Bad Request: params');
+  });
+
+  test('validates params with empty string id', async () => {
+    const response = await app.inject({
+      method: 'patch',
+      url: '/api/users/',
+      payload: {
+        name: 'Jane Doe',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+    expect(body.error).toMatch(/^Bad Request: params - .*id.*/);
+  });
+
+  test('validates body with invalid email and age', async () => {
+    const response = await app.inject({
+      method: 'patch',
+      url: '/api/users/user-123',
+      payload: {
+        email: 'not-an-email',
+        age: -5, // Negative age
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+    expect(body.error).toContain('Bad Request: body');
+    // Should contain both validation errors
+    expect(body.error).toContain('email');
+    expect(body.error).toContain('age');
+  });
+
+  test('validates body with extra fields (strictObject)', async () => {
+    const response = await app.inject({
+      method: 'patch',
+      url: '/api/users/user-123',
+      payload: {
+        name: 'Jane Doe',
+        extraField: 'not allowed', // Not in schema
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+    expect(body.error).toContain('Bad Request: body');
   });
 
   test('works with no body (all optional fields)', async () => {

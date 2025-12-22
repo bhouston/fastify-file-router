@@ -124,7 +124,7 @@ GET /api/users/:id
 
 ## Using Zod Schemas
 
-You can use [Zod](https://zod.dev) schemas directly with `defineRouteZod`, which automatically extracts TypeScript types from Zod schemas using `z.infer` and converts them to JSON Schema for Fastify's runtime validation. This is the recommended approach when using Zod.
+You can use [Zod](https://zod.dev) schemas directly with `defineRouteZod`, which automatically extracts TypeScript types from Zod schemas using `z.infer` and uses the Zod schemas directly for runtime validation. The Zod schemas are also converted to JSON Schema, but these conversions are **only used for documentation purposes** (such as OpenAPI/Swagger), not for validation. This means you get the full power and better error messages of Zod validation, while still having proper API documentation. This is the recommended approach when using Zod.
 
 **Route with Zod Schemas (`routes/api/users/$id.patch.ts`)**
 
