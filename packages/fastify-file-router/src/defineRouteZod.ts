@@ -47,10 +47,19 @@ function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
   const jsonSchema = z.toJSONSchema(schema, {
     target: 'draft-2020-12',
     unrepresentable: 'any',
+    override: (ctx) => {
+      // Guard against undefined zodSchema._zod (can happen with certain nested optional structures in zod v4)
+      if (ctx.zodSchema?._zod?.def) {
+        const def = ctx.zodSchema._zod.def;
+        if (def.type === 'date') {
+          ctx.jsonSchema.type = 'string';
+          ctx.jsonSchema.format = 'date-time';
+        }
+      }
+    },
   });
-  // Remove $schema property as Fastify doesn't need it
-  const { $schema: _, ...rest } = jsonSchema;
-  return rest;
+  delete jsonSchema.$schema;
+  return jsonSchema as Record<string, unknown>;
 }
 
 /**
