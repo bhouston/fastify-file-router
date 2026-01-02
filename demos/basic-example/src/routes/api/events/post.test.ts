@@ -266,24 +266,23 @@ describe('POST /api/events', () => {
 
     expect(response.statusCode).toBe(201);
     const body = response.json();
-    
+
     // Verify all date fields are present and correctly formatted
     expect(body).toHaveProperty('title', 'All-Day Conference');
     expect(body).toHaveProperty('startDate', startDate.toISOString());
     expect(body).toHaveProperty('endDate', endDate.toISOString());
     expect(body).toHaveProperty('duration', 8 * 60 * 60 * 1000); // 8 hours
-    
+
     // Verify nested optional metadata with date
     expect(body.metadata).toHaveProperty('createdAt', createdAt.toISOString());
-    
+
     // Verify array of dates
     expect(body.reminderDates).toHaveLength(2);
     expect(body.reminderDates[0]).toBe(reminder1.toISOString());
     expect(body.reminderDates[1]).toBe(reminder2.toISOString());
-    
+
     // Verify querystring dates
     expect(body.filters).toHaveProperty('startDate', filterStart.toISOString());
     expect(body.filters).toHaveProperty('endDate', filterEnd.toISOString());
   });
 });
-

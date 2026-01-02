@@ -176,6 +176,68 @@ export const route = defineRouteZod({
 });
 ```
 
+### Mixing Zod and JSON Schema
+
+`defineRouteZod` is an enhanced version of `defineRoute` that allows you to mix Zod schemas and JSON Schema within a single route definition. This gives you the flexibility to use the best validation approach for each field while maintaining full type safety.
+
+**Route with Mixed Schemas (`routes/api/users/$id.put.ts`)**
+
+```ts
+import { defineRouteZod } from 'fastify-file-router';
+import { z } from 'zod';
+
+export const route = defineRouteZod({
+  schema: {
+    // Use Zod for complex validation
+    params: z.object({
+      id: z.string().uuid('ID must be a valid UUID'),
+    }),
+    // Use JSON Schema for simple validation
+    querystring: {
+      type: 'object',
+      properties: {
+        include: { type: 'string', enum: ['profile', 'settings'] },
+      },
+    } as const,
+    // Use Zod for body validation
+    body: z.object({
+      name: z.string().min(1).optional(),
+      email: z.string().email().optional(),
+    }),
+    // Use JSON Schema for headers
+    headers: {
+      type: 'object',
+      properties: {
+        'x-api-key': { type: 'string' },
+      },
+      required: ['x-api-key'],
+    } as const,
+    // Mix response schemas too
+    response: {
+      200: z.object({ id: z.string(), name: z.string() }), // Zod
+      400: {
+        type: 'object',
+        properties: { error: { type: 'string' } },
+        required: ['error'],
+      } as const, // JSON Schema
+    },
+  },
+  handler: async (request, reply) => {
+    // Types are correctly inferred from both schema types!
+    // request.params.id is typed as string (from Zod)
+    // request.query.include is typed correctly (from JSON Schema)
+    // request.body.name and email are typed (from Zod)
+    const { id } = request.params;
+    const { include } = request.query;
+    const { name, email } = request.body;
+
+    reply.status(200).send({ id, name, email, included: include });
+  },
+});
+```
+
+When using mixed schemas, both Zod and JSON Schema fields are validated in the `preValidation` hook for consistent error handling. Type inference works seamlessly, extracting types from Zod schemas using `z.infer` and from JSON Schema using `FromSchema`.
+
 ## Custom Schema Types
 
 When using Fastify plugins that extend the schema with additional properties (such as OpenAPI/Swagger plugins), you can use `defineRoute` with a custom schema type that extends `FastifySchema`. This allows you to add plugin-specific metadata while maintaining full type safety.

@@ -67,7 +67,3 @@ describe('PUT /api/users/:id', () => {
     expect(response.statusCode).toBe(400);
   });
 });
-
-
-
-

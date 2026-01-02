@@ -9,6 +9,7 @@
     "tsgo": "tsgo --noEmit"
   },
   "dependencies": {
+    "ajv": "^8.0.0",
     "fastify": "^5.0.0",
     "fastify-file-router": "workspace:*",
     "zod": "^4.0.0"

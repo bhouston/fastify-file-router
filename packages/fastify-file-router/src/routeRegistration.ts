@@ -1,9 +1,10 @@
 import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { FastifyInstance, FastifySchema, LogLevel } from 'fastify';
+import type Ajv from 'ajv';
+import type { FastifyInstance, LogLevel } from 'fastify';
 import type { z } from 'zod';
-import { formatZodError } from './defineRouteZod.js';
+import { formatJsonSchemaError, formatZodError, type SchemaTypeIndicators } from './defineRouteZod.js';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
 import { toHttpMethod, toRouteNextStyle, toRouteRemixStyle } from './routeConverter.js';
 import type { RouteHandler, RouteModule, RouteSchema } from './types.js';
@@ -210,30 +211,59 @@ export async function registerRoutes(
         );
       }
 
-      // Check if this is a Zod route (has __zodSchemas property)
+      // Check if this is a mixed schema route (has __zodSchemas or __schemaTypes property)
       const zodSchemas =
         schema && '__zodSchemas' in schema ? (schema as { __zodSchemas: unknown }).__zodSchemas : undefined;
+      const schemaTypes =
+        schema && '__schemaTypes' in schema ? (schema as { __schemaTypes: unknown }).__schemaTypes : undefined;
 
+      // Check if we have any Zod schemas (if so, we need custom validation)
+      const hasZodSchemas = zodSchemas && Object.keys(zodSchemas as Record<string, unknown>).length > 0;
+      const hasSchemaTypes = schemaTypes && Object.keys(schemaTypes as Record<string, unknown>).length > 0;
+
+      // If we have schema types defined, we need to validate in preValidation for consistent error handling
+      const needsCustomValidation = hasZodSchemas || hasSchemaTypes;
+
+      // If we have mixed schemas, we'll validate in preValidation, so don't pass schema to Fastify
+      // If we only have JSON Schema (no Zod), Fastify will handle it
       const routeOptions: Parameters<typeof fastify.route>[0] = {
         method: typedMethod,
         url,
-        schema: zodSchemas ? undefined : schema, // Don't pass schema to Fastify for Zod routes (Zod will validate)
+        schema: needsCustomValidation ? undefined : schema,
         handler,
       };
 
-      // Add preValidation hook for Zod routes
-      if (zodSchemas) {
+      // Add preValidation hook for routes with Zod schemas or mixed schemas
+      if (needsCustomValidation) {
+        // Create Ajv instance for JSON Schema validation
+        // We use dynamic import to avoid requiring ajv if not using mixed schemas
+        let AjvClass: typeof Ajv | undefined;
+        try {
+          const ajvModule = await import('ajv');
+          AjvClass = ajvModule.default;
+        } catch {
+          // Ajv not available - this should not happen if peer dependency is installed
+          // but we handle it gracefully by skipping JSON Schema validation in preValidation
+          AjvClass = undefined;
+        }
+
+        // Enable type coercion for querystring (HTTP querystring params are always strings)
+        const ajvInstance = AjvClass
+          ? new AjvClass({ allErrors: true, coerceTypes: true, useDefaults: true })
+          : undefined;
+
         routeOptions.preValidation = async (request, reply) => {
           type ZodTypeAny = z.ZodTypeAny;
-          const zodSchema = zodSchemas as {
+          const zodSchema = (zodSchemas || {}) as {
             params?: ZodTypeAny;
             querystring?: ZodTypeAny;
             body?: ZodTypeAny;
             headers?: ZodTypeAny;
           };
+          const types = (schemaTypes || {}) as SchemaTypeIndicators;
 
           // Validate params
-          if (zodSchema.params) {
+          if (types.params === 'zod' && zodSchema.params) {
             const paramsResult = zodSchema.params.safeParse(request.params);
             if (!paramsResult.success) {
               return reply.status(400).send({
@@ -242,10 +272,17 @@ export async function registerRoutes(
             }
             // Replace request.params with validated data
             (request as { params: unknown }).params = paramsResult.data;
+          } else if (types.params === 'json' && schema?.params && ajvInstance) {
+            const validate = ajvInstance.compile(schema.params);
+            if (!validate(request.params)) {
+              return reply.status(400).send({
+                error: formatJsonSchemaError(validate.errors || [], 'params'),
+              });
+            }
           }
 
           // Validate querystring (Fastify uses request.query, not request.querystring)
-          if (zodSchema.querystring) {
+          if (types.querystring === 'zod' && zodSchema.querystring) {
             const querystringResult = zodSchema.querystring.safeParse(request.query);
             if (!querystringResult.success) {
               return reply.status(400).send({
@@ -254,10 +291,44 @@ export async function registerRoutes(
             }
             // Replace request.query with validated data
             (request as { query: unknown }).query = querystringResult.data;
+          } else if (types.querystring === 'json' && schema?.querystring && ajvInstance) {
+            // Coerce querystring values (HTTP querystring params are always strings)
+            // Convert 'true'/'false' strings to booleans, numbers to numbers, etc.
+            const queryObj = request.query as Record<string, unknown>;
+            const coercedQuery: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(queryObj || {})) {
+              if (typeof value === 'string') {
+                // Try to coerce boolean strings
+                if (value === 'true') {
+                  coercedQuery[key] = true;
+                } else if (value === 'false') {
+                  coercedQuery[key] = false;
+                } else {
+                  // Try to coerce to number
+                  const numValue = Number(value);
+                  if (!Number.isNaN(numValue) && value.trim() !== '' && !value.includes('.')) {
+                    coercedQuery[key] = numValue;
+                  } else {
+                    coercedQuery[key] = value;
+                  }
+                }
+              } else {
+                coercedQuery[key] = value;
+              }
+            }
+            const validate = ajvInstance.compile(schema.querystring);
+            // Validate the coerced query object
+            if (!validate(coercedQuery)) {
+              return reply.status(400).send({
+                error: formatJsonSchemaError(validate.errors || [], 'querystring'),
+              });
+            }
+            // Update request.query with coerced values (Ajv may have further modified them)
+            (request as { query: unknown }).query = coercedQuery;
           }
 
           // Validate body
-          if (zodSchema.body) {
+          if (types.body === 'zod' && zodSchema.body) {
             const bodyResult = zodSchema.body.safeParse(request.body);
             if (!bodyResult.success) {
               return reply.status(400).send({
@@ -266,10 +337,17 @@ export async function registerRoutes(
             }
             // Replace request.body with validated data
             (request as { body: unknown }).body = bodyResult.data;
+          } else if (types.body === 'json' && schema?.body && ajvInstance) {
+            const validate = ajvInstance.compile(schema.body);
+            if (!validate(request.body)) {
+              return reply.status(400).send({
+                error: formatJsonSchemaError(validate.errors || [], 'body'),
+              });
+            }
           }
 
           // Validate headers
-          if (zodSchema.headers) {
+          if (types.headers === 'zod' && zodSchema.headers) {
             const headersResult = zodSchema.headers.safeParse(request.headers);
             if (!headersResult.success) {
               return reply.status(400).send({
@@ -278,11 +356,21 @@ export async function registerRoutes(
             }
             // Replace request.headers with validated data
             (request as { headers: unknown }).headers = headersResult.data;
+          } else if (types.headers === 'json' && schema?.headers && ajvInstance) {
+            const validate = ajvInstance.compile(schema.headers);
+            if (!validate(request.headers)) {
+              return reply.status(400).send({
+                error: formatJsonSchemaError(validate.errors || [], 'headers'),
+              });
+            }
           }
         };
 
-        // disable default validation
-        routeOptions.validatorCompiler = (_validationSchema) => (data) => data;
+        // Disable default validation if we have any Zod schemas (to avoid double validation)
+        // If we only have JSON Schema and Ajv is available, we've validated in preValidation
+        if (hasZodSchemas || (hasSchemaTypes && ajvInstance)) {
+          routeOptions.validatorCompiler = (_validationSchema) => (data) => data;
+        }
       }
 
       fastify.route(routeOptions);

@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { getApp } from '../../../buildFastify.ts';
 
+const ERROR_PATTERN = /^Bad Request: params - .*id.*/;
+
 describe('PATCH /api/users/:id', () => {
   let app: FastifyInstance;
 
@@ -130,7 +132,7 @@ describe('PATCH /api/users/:id', () => {
     expect(response.statusCode).toBe(400);
     const body = response.json();
     expect(body).toHaveProperty('error');
-    expect(body.error).toMatch(/^Bad Request: params - .*id.*/);
+    expect(body.error).toMatch(ERROR_PATTERN);
   });
 
   test('validates body with invalid email and age', async () => {
