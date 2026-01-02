@@ -281,35 +281,8 @@ export async function registerRoutes(
           }
         };
 
-        // Include schema for OpenAPI documentation, but without validation properties
-        // so Fastify doesn't validate (Zod handles validation via preValidation hook)
-        // We'll re-add validation properties for OpenAPI docs only
-        const openApiSchema = { ...schema } as FastifySchema & { __zodSchemas?: unknown };
-        delete openApiSchema.__zodSchemas;
-
-        // Remove validation properties to prevent Fastify from validating
-        // (Zod will validate in preValidation hook)
-        const params = openApiSchema.params;
-        const querystring = openApiSchema.querystring;
-        const body = openApiSchema.body;
-        const headers = openApiSchema.headers;
-        delete openApiSchema.params;
-        delete openApiSchema.querystring;
-        delete openApiSchema.body;
-        delete openApiSchema.headers;
-
-        // Re-add validation properties for OpenAPI documentation
-        // Fastify will use these for OpenAPI/Swagger generation but won't validate
-        // because we're setting them after the initial schema check
-        const finalSchema: FastifySchema = {
-          ...openApiSchema,
-        };
-        if (params) finalSchema.params = params;
-        if (querystring) finalSchema.querystring = querystring;
-        if (body) finalSchema.body = body;
-        if (headers) finalSchema.headers = headers;
-
-        routeOptions.schema = finalSchema;
+        // disable default validation
+        routeOptions.validatorCompiler = (_validationSchema) => (data) => data;
       }
 
       fastify.route(routeOptions);

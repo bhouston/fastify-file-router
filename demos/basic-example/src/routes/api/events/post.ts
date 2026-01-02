@@ -27,10 +27,26 @@ const bodySchema = z.object({
   reminderDates: z.array(z.coerce.date()).optional(),
 });
 
+const responseSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  startDate: z.coerce.string(),
+  endDate: z.coerce.string(),
+});
 export const route = defineRouteZod({
   schema: {
     querystring: querystringSchema,
     body: bodySchema,
+    response: {
+      201: responseSchema,
+      400: z.object({
+        error: z.string(),
+      }),
+      404: z.object({
+        error: z.string(),
+      }),
+    },
   },
   handler: async (request, reply) => {
     // All types are automatically inferred from the Zod schemas!
@@ -80,4 +96,3 @@ export const route = defineRouteZod({
     });
   },
 });
-

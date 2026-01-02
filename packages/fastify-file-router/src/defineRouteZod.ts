@@ -9,6 +9,7 @@ export interface ZodRouteSchema {
   querystring?: z.ZodTypeAny;
   body?: z.ZodTypeAny;
   headers?: z.ZodTypeAny;
+  response?: Record<string | number, z.ZodTypeAny>;
   // Allow other FastifySchema properties like description, tags, etc.
   [key: string]: unknown;
 }
@@ -22,6 +23,9 @@ type ExtractZodSchemaTypes<T extends ZodRouteSchema> = {
   Body: T['body'] extends z.ZodTypeAny ? z.infer<T['body']> : unknown;
   Querystring: T['querystring'] extends z.ZodTypeAny ? z.infer<T['querystring']> : unknown;
   Headers: T['headers'] extends z.ZodTypeAny ? z.infer<T['headers']> : unknown;
+  Response: T['response'] extends Record<string | number, z.ZodTypeAny>
+    ? { [K in keyof T['response']]: T['response'][K] extends z.ZodTypeAny ? z.infer<T['response'][K]> : never }
+    : unknown;
 };
 
 /**
@@ -126,9 +130,20 @@ export function defineRouteZod<T extends ZodRouteSchema>(route: {
     fastifySchema.headers = zodToJsonSchema(zodSchema.headers);
   }
 
+  // Convert response schemas (status codes as keys, Zod schemas as values)
+  if (zodSchema.response) {
+    const responseSchemas: Record<string, Record<string, unknown>> = {};
+    for (const [statusCode, zodResponseSchema] of Object.entries(zodSchema.response)) {
+      // Response schemas are always Zod schemas, convert them to JSON Schema
+      // Fastify expects string keys for status codes
+      responseSchemas[String(statusCode)] = zodToJsonSchema(zodResponseSchema);
+    }
+    fastifySchema.response = responseSchemas;
+  }
+
   // Copy any other properties (like description, tags, etc. for OpenAPI)
   for (const [key, value] of Object.entries(zodSchema)) {
-    if (!['params', 'querystring', 'body', 'headers'].includes(key)) {
+    if (!['params', 'querystring', 'body', 'headers', 'response'].includes(key)) {
       (fastifySchema as Record<string, unknown>)[key] = value;
     }
   }

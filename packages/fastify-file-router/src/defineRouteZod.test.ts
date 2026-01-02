@@ -220,5 +220,43 @@ describe('defineRouteZod - zodToJsonSchema conversion', () => {
     expect(route.schema.querystring).toBeUndefined();
     expect(route.schema.headers).toBeUndefined();
   });
+
+  test('converts response schemas from Zod to JSON Schema', () => {
+    const route = defineRouteZod({
+      schema: {
+        body: z.object({
+          name: z.string(),
+        }),
+        response: {
+          200: z.object({
+            id: z.string(),
+            name: z.string(),
+          }),
+          400: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      handler: async () => ({}),
+    });
+
+    const responseSchema = route.schema.response as Record<string, unknown>;
+    expect(responseSchema).toBeDefined();
+    expect(responseSchema['200']).toBeDefined();
+    expect(responseSchema['400']).toBeDefined();
+
+    const response200 = responseSchema['200'] as Record<string, unknown>;
+    expect(response200).toHaveProperty('type', 'object');
+    expect(response200).toHaveProperty('properties');
+    const properties200 = response200.properties as Record<string, unknown>;
+    expect(properties200.id).toHaveProperty('type', 'string');
+    expect(properties200.name).toHaveProperty('type', 'string');
+
+    const response400 = responseSchema['400'] as Record<string, unknown>;
+    expect(response400).toHaveProperty('type', 'object');
+    expect(response400).toHaveProperty('properties');
+    const properties400 = response400.properties as Record<string, unknown>;
+    expect(properties400.error).toHaveProperty('type', 'string');
+  });
 });
 
