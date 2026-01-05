@@ -1,7 +1,7 @@
 import type { FastifySchema } from 'fastify';
 import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
-import { defineRouteZod } from './defineRouteZod.js';
+import { defineRouteZod, formatJsonSchemaError, formatZodError } from './defineRouteZod.js';
 
 describe('defineRouteZod - zodToJsonSchema conversion', () => {
   test('removes $schema property from converted JSON Schema', () => {
@@ -493,5 +493,146 @@ describe('defineRouteZod - mixed Zod and JSON Schema', () => {
     expect(route.schema).toBeDefined();
     expect(route.schema.__schemaTypes).toBeDefined();
     expect(Object.keys(route.schema.__schemaTypes || {})).toHaveLength(0);
+  });
+});
+
+describe('defineRouteZod - error formatting functions', () => {
+  describe('formatZodError', () => {
+    test('formats single error without path', () => {
+      const error = z.string().min(5).safeParse('abc');
+      if (!error.success) {
+        const formatted = formatZodError(error.error, 'body');
+        expect(formatted).toContain('Bad Request: body -');
+        expect(formatted).toContain('Too small');
+      }
+    });
+
+    test('formats single error with path', () => {
+      const schema = z.object({
+        user: z.object({
+          name: z.string().min(3),
+        }),
+      });
+      const error = schema.safeParse({ user: { name: 'ab' } });
+      if (!error.success) {
+        const formatted = formatZodError(error.error, 'body');
+        expect(formatted).toContain('Bad Request: body -');
+        expect(formatted).toContain('user.name');
+        expect(formatted).toContain('Too small');
+      }
+    });
+
+    test('formats multiple errors', () => {
+      const schema = z.object({
+        name: z.string().min(3),
+        email: z.string().email(),
+        age: z.number().min(18),
+      });
+      const error = schema.safeParse({ name: 'ab', email: 'invalid', age: 15 });
+      if (!error.success) {
+        const formatted = formatZodError(error.error, 'body');
+        expect(formatted).toContain('Bad Request: body -');
+        expect(formatted).toContain('name');
+        expect(formatted).toContain('email');
+        expect(formatted).toContain('age');
+        // Should contain commas separating errors
+        expect(formatted.split(',')).toHaveLength(3);
+      }
+    });
+
+    test('formats nested path errors', () => {
+      const schema = z.object({
+        users: z.array(
+          z.object({
+            profile: z.object({
+              name: z.string().min(1),
+            }),
+          }),
+        ),
+      });
+      const error = schema.safeParse({ users: [{ profile: { name: '' } }] });
+      if (!error.success) {
+        const formatted = formatZodError(error.error, 'body');
+        expect(formatted).toContain('Bad Request: body -');
+        expect(formatted).toContain('users.0.profile.name');
+      }
+    });
+
+    test('formats error with empty path', () => {
+      const error = z.string().safeParse(123);
+      if (!error.success) {
+        const formatted = formatZodError(error.error, 'params');
+        expect(formatted).toContain('Bad Request: params -');
+        expect(formatted).toContain('string');
+        expect(formatted).toContain('number');
+      }
+    });
+
+    test('formats error for different components', () => {
+      const error = z.string().min(5).safeParse('abc');
+      if (!error.success) {
+        expect(formatZodError(error.error, 'params')).toContain('params');
+        expect(formatZodError(error.error, 'querystring')).toContain('querystring');
+        expect(formatZodError(error.error, 'body')).toContain('body');
+        expect(formatZodError(error.error, 'headers')).toContain('headers');
+      }
+    });
+  });
+
+  describe('formatJsonSchemaError', () => {
+    test('formats single error without instancePath', () => {
+      const errors = [{ instancePath: '', message: 'validation failed' }];
+      const formatted = formatJsonSchemaError(errors, 'body');
+      expect(formatted).toBe('Bad Request: body - validation failed');
+    });
+
+    test('formats single error with instancePath', () => {
+      const errors = [{ instancePath: '/name', message: 'must be a string' }];
+      const formatted = formatJsonSchemaError(errors, 'body');
+      expect(formatted).toBe('Bad Request: body - name: must be a string');
+    });
+
+    test('formats multiple errors', () => {
+      const errors = [
+        { instancePath: '/name', message: 'must be a string' },
+        { instancePath: '/email', message: 'must be a valid email' },
+        { instancePath: '/age', message: 'must be a number' },
+      ];
+      const formatted = formatJsonSchemaError(errors, 'body');
+      expect(formatted).toContain('Bad Request: body -');
+      expect(formatted).toContain('name: must be a string');
+      expect(formatted).toContain('email: must be a valid email');
+      expect(formatted).toContain('age: must be a number');
+      // Should contain commas separating errors
+      expect(formatted.split(',')).toHaveLength(3);
+    });
+
+    test('formats error with missing message', () => {
+      const errors = [{ instancePath: '/name' }];
+      const formatted = formatJsonSchemaError(errors, 'body');
+      expect(formatted).toBe('Bad Request: body - name: validation failed');
+    });
+
+    test('formats error with root instancePath', () => {
+      const errors = [{ instancePath: '/', message: 'required property missing' }];
+      const formatted = formatJsonSchemaError(errors, 'body');
+      expect(formatted).toBe('Bad Request: body - : required property missing');
+    });
+
+    test('formats nested instancePath', () => {
+      const errors = [{ instancePath: '/user/profile/name', message: 'must be a string' }];
+      const formatted = formatJsonSchemaError(errors, 'body');
+      expect(formatted).toContain('Bad Request: body -');
+      expect(formatted).toContain('user/profile/name');
+      expect(formatted).toContain('must be a string');
+    });
+
+    test('formats error for different components', () => {
+      const errors = [{ instancePath: '/id', message: 'must be a string' }];
+      expect(formatJsonSchemaError(errors, 'params')).toContain('params');
+      expect(formatJsonSchemaError(errors, 'querystring')).toContain('querystring');
+      expect(formatJsonSchemaError(errors, 'body')).toContain('body');
+      expect(formatJsonSchemaError(errors, 'headers')).toContain('headers');
+    });
   });
 });
