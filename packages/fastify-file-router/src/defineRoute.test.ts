@@ -198,10 +198,10 @@ describe('defineRoute', () => {
     });
 
     expect(route.schema).toBeDefined();
-    expect(route.schema.params).toBeUndefined();
-    expect(route.schema.body).toBeUndefined();
-    expect(route.schema.querystring).toBeUndefined();
-    expect(route.schema.headers).toBeUndefined();
+    expect((route.schema as FastifySchema).params).toBeUndefined();
+    expect((route.schema as FastifySchema).body).toBeUndefined();
+    expect((route.schema as FastifySchema).querystring).toBeUndefined();
+    expect((route.schema as FastifySchema).headers).toBeUndefined();
   });
 
   test('preserves additional schema properties', () => {
