@@ -11,6 +11,8 @@
     "clean": "rimraf dist packages/**/dist demos/**/dist .nx node_modules packages/**/node_modules demos/**/node_modules",
     "check": "biome check --write",
     "tsgo": "pnpm -r tsgo",
+    "test": "pnpm vitest",
+    "lint": "pnpm biome check",
     "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build"
   },
   "devDependencies": {
