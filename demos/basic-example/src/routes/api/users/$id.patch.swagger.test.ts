@@ -42,15 +42,97 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
     const schema = idParam?.schema as OpenAPIV3.SchemaObject;
     expect(schema?.type).toBe('string');
     expect(idParam?.required).toBe(true);
+  });
 
-    // Note: Querystring and body schemas may not appear in Swagger when using
-    // defineRouteZod with custom validation (preValidation hooks).
-    // This is a known limitation - the schema is passed to Fastify for Swagger,
-    // but Swagger may not process it fully when custom validation is used.
-    // The core fix ensures the schema is passed (not undefined), which allows
-    // Swagger to at least see the route and path parameters.
-    // For full Swagger documentation, consider using defineRoute with JSON Schema
-    // or ensuring the schema structure matches Swagger's expectations exactly.
+  test('PATCH /api/users/:id requestBody schema is present and correctly structured', () => {
+    const swaggerSchema = app.swagger() as OpenAPIV3.Document;
+    const path = swaggerSchema.paths?.['/api/users/{id}'];
+    const patchOp = path?.patch as OpenAPIV3.OperationObject | undefined;
+
+    // Verify requestBody exists in OpenAPI 3.0 format
+    expect(patchOp?.requestBody).toBeDefined();
+    const requestBody = patchOp?.requestBody as OpenAPIV3.RequestBodyObject | undefined;
+    expect(requestBody).toBeDefined();
+
+    // Verify content structure
+    expect(requestBody?.content).toBeDefined();
+    expect(requestBody?.content?.['application/json']).toBeDefined();
+
+    // Verify schema exists
+    const bodySchema = requestBody?.content?.['application/json']
+      ?.schema as OpenAPIV3.SchemaObject | undefined;
+    expect(bodySchema).toBeDefined();
+    expect(bodySchema?.type).toBe('object');
+    expect(bodySchema?.properties).toBeDefined();
+  });
+
+  test('PATCH /api/users/:id requestBody schema has correct properties', () => {
+    const swaggerSchema = app.swagger() as OpenAPIV3.Document;
+    const path = swaggerSchema.paths?.['/api/users/{id}'];
+    const patchOp = path?.patch as OpenAPIV3.OperationObject | undefined;
+    const requestBody = patchOp?.requestBody as OpenAPIV3.RequestBodyObject | undefined;
+    const bodySchema = requestBody?.content?.['application/json']
+      ?.schema as OpenAPIV3.SchemaObject | undefined;
+
+    expect(bodySchema?.properties).toBeDefined();
+    const properties = bodySchema?.properties as Record<string, OpenAPIV3.SchemaObject> | undefined;
+
+    // Verify name property
+    expect(properties?.name).toBeDefined();
+    expect(properties?.name?.type).toBe('string');
+    expect(properties?.name?.minLength).toBe(1);
+
+    // Verify email property
+    expect(properties?.email).toBeDefined();
+    expect(properties?.email?.type).toBe('string');
+    expect(properties?.email?.format).toBe('email');
+
+    // Verify age property
+    expect(properties?.age).toBeDefined();
+    // Age should be number or integer
+    expect(['number', 'integer']).toContain(properties?.age?.type);
+    expect(properties?.age?.minimum).toBe(0);
+    expect(properties?.age?.maximum).toBe(150);
+
+    // Verify all properties are optional (no required array or all properties marked required)
+    // In OpenAPI, if a property is optional, it should not be in the required array
+    if (bodySchema?.required) {
+      expect(bodySchema.required).not.toContain('name');
+      expect(bodySchema.required).not.toContain('email');
+      expect(bodySchema.required).not.toContain('age');
+    }
+  });
+
+  test('PATCH /api/users/:id querystring parameters are present in OpenAPI', () => {
+    const swaggerSchema = app.swagger() as OpenAPIV3.Document;
+    const path = swaggerSchema.paths?.['/api/users/{id}'];
+    const patchOp = path?.patch as OpenAPIV3.OperationObject | undefined;
+
+    expect(patchOp?.parameters).toBeDefined();
+    const parameters = patchOp?.parameters as OpenAPIV3.ParameterObject[] | undefined;
+
+    // Verify include parameter
+    const includeParam = parameters?.find(
+      (p): p is OpenAPIV3.ParameterObject => 'name' in p && p.name === 'include',
+    );
+    expect(includeParam).toBeDefined();
+    expect(includeParam?.in).toBe('query');
+    expect(includeParam?.required).toBeFalsy(); // Optional parameter
+    expect(includeParam?.schema).toBeDefined();
+    const includeSchema = includeParam?.schema as OpenAPIV3.SchemaObject | undefined;
+    expect(includeSchema?.type).toBe('string');
+    expect(includeSchema?.enum).toEqual(['profile', 'settings']);
+
+    // Verify fields parameter
+    const fieldsParam = parameters?.find(
+      (p): p is OpenAPIV3.ParameterObject => 'name' in p && p.name === 'fields',
+    );
+    expect(fieldsParam).toBeDefined();
+    expect(fieldsParam?.in).toBe('query');
+    expect(fieldsParam?.required).toBeFalsy(); // Optional parameter
+    expect(fieldsParam?.schema).toBeDefined();
+    const fieldsSchema = fieldsParam?.schema as OpenAPIV3.SchemaObject | undefined;
+    expect(fieldsSchema?.type).toBe('string');
   });
 
   test('Response schemas are included in OpenAPI definition', () => {
@@ -58,10 +140,16 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
     const path = swaggerSchema.paths?.['/api/users/{id}'];
     const patchOp = path?.patch as OpenAPIV3.OperationObject | undefined;
 
-    // Verify that responses object exists (even if empty)
+    // Verify that responses object exists
     expect(patchOp?.responses).toBeDefined();
-    // The route doesn't define a response schema, so we just verify the structure exists
-    expect(patchOp?.responses?.['200']).toBeDefined();
+    
+    // The route doesn't define a response schema, so we verify the default 200 response exists
+    const response200 = patchOp?.responses?.['200'] as OpenAPIV3.ResponseObject | undefined;
+    expect(response200).toBeDefined();
+    
+    // If a response schema was defined, we would verify its structure here
+    // For now, we just verify the response structure exists
+    // The actual response structure can be verified by checking response200.content if present
   });
 
   test('Other defineRouteZod routes have OpenAPI definitions', () => {
