@@ -2,7 +2,7 @@ import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type Ajv from 'ajv';
-import type { FastifyInstance, LogLevel } from 'fastify';
+import type { FastifyInstance, FastifySchema, LogLevel } from 'fastify';
 import type { z } from 'zod';
 import { formatJsonSchemaError, formatZodError, type SchemaTypeIndicators } from './defineRouteZod.js';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
@@ -224,13 +224,57 @@ export async function registerRoutes(
       // If we have schema types defined, we need to validate in preValidation for consistent error handling
       const needsCustomValidation = hasZodSchemas || hasSchemaTypes;
 
-      // If we have mixed schemas, we'll validate in preValidation, so don't pass schema to Fastify
-      // If we only have JSON Schema (no Zod), Fastify will handle it
+      // Always pass schema to Fastify for Swagger/OpenAPI documentation generation.
+      // Custom validation happens in preValidation hooks, so passing the schema doesn't interfere.
+      // The schema contains JSON Schema (converted from Zod schemas) which Swagger needs for documentation.
+
+      // Create a clean schema object without our internal metadata for Fastify
+      // We need to explicitly construct the schema to ensure all properties are present
+      const fastifySchema = schema
+        ? (() => {
+            const cleanSchema: FastifySchema = {};
+            if (schema.params) cleanSchema.params = schema.params;
+            if (schema.querystring) cleanSchema.querystring = schema.querystring;
+            if (schema.body) cleanSchema.body = schema.body;
+            if (schema.headers) cleanSchema.headers = schema.headers;
+            if (schema.response) cleanSchema.response = schema.response;
+            // Copy other properties (description, tags, etc.) but exclude internal metadata
+            for (const [key, value] of Object.entries(schema)) {
+              if (
+                !['params', 'querystring', 'body', 'headers', 'response', '__zodSchemas', '__schemaTypes'].includes(key)
+              ) {
+                (cleanSchema as Record<string, unknown>)[key] = value;
+              }
+            }
+            return cleanSchema;
+          })()
+        : undefined;
+
+      // Set up route options - if we have custom validation, disable Fastify's validators
+      // BEFORE setting the schema, so Fastify uses our no-op validators
       const routeOptions: Parameters<typeof fastify.route>[0] = {
         method: typedMethod,
         url,
-        schema: needsCustomValidation ? undefined : schema,
+        schema: fastifySchema, // Always pass schema for Swagger/OpenAPI documentation
         handler,
+        // Set validatorCompiler and serializerCompiler BEFORE adding preValidation hook
+        // to ensure Fastify uses our no-op validators instead of default ones
+        ...(needsCustomValidation ? {
+          // Disable Fastify's validator and serializer when we have custom validation to avoid
+          // double validation and conflicts between Zod validation and JSON Schema validation.
+          // Swagger will still process the schema for documentation even with no-op validators.
+          // The validatorCompiler signature: ({ schema, method, url, httpPart }) => (data) => result
+          // Returns a function that always returns true (validation passes)
+          // Match the exact signature from Fastify tests to ensure compatibility
+          validatorCompiler: ({ schema, method, url, httpPart }) => {
+            return () => true; // Always pass validation - we handle it in preValidation hook
+          },
+          // Disable serialization validation - response schemas are for documentation only
+          // We use JSON.stringify to bypass fast-json-stringify's schema filtering
+          serializerCompiler: ({ schema, method, url, httpStatus, contentType }) => {
+            return (data) => JSON.stringify(data);
+          },
+        } : {}),
       };
 
       // Add preValidation hook for routes with Zod schemas or mixed schemas
@@ -365,12 +409,6 @@ export async function registerRoutes(
             }
           }
         };
-
-        // Disable default validation if we have any Zod schemas (to avoid double validation)
-        // If we only have JSON Schema and Ajv is available, we've validated in preValidation
-        if (hasZodSchemas || (hasSchemaTypes && ajvInstance)) {
-          routeOptions.validatorCompiler = (_validationSchema) => (data) => data;
-        }
       }
 
       fastify.route(routeOptions);

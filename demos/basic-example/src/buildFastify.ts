@@ -1,4 +1,6 @@
 import path from 'node:path';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import Fastify, { type LogLevel } from 'fastify';
 import { fastifyFileRouter } from 'fastify-file-router';
 
@@ -12,6 +14,42 @@ export async function getApp(options: GetAppOptions = {}) {
   const app = Fastify({
     logger: { level: logLevel },
     trustProxy: true,
+  });
+
+  // Register Swagger plugins for OpenAPI documentation
+  await app.register(swagger, {
+    openapi: {
+      openapi: '3.0.0',
+      info: {
+        title: 'Fastify File Router API',
+        version: '1.0.0',
+        description: 'API documentation for Fastify File Router demo',
+      },
+      components: {
+        securitySchemes: {
+          jwtToken: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+            description: 'JWT token authentication',
+          },
+          secretToken: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'X-Secret-Token',
+            description: 'Secret token authentication',
+          },
+        },
+      },
+    },
+  });
+
+  await app.register(swaggerUi, {
+    routePrefix: '/documentation',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: false,
+    },
   });
 
   // get current directory on node.

@@ -1,7 +1,7 @@
 {
   "name": "fastify-file-router",
   "description": "A fastify plugin that automatically registers routes from files in a directory.",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
