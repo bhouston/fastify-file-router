@@ -36,6 +36,7 @@
     "ajv": "^8"
   },
   "devDependencies": {
+    "@fastify/response-validation": "^3.0.0",
     "@types/node": "^24",
     "node-mocks-http": "^1.16.1",
     "vitest": "^2.1.8",

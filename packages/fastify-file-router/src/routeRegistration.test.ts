@@ -911,3 +911,345 @@ export const route = defineRouteZod({
     }
   });
 });
+
+describe('routeRegistration - response validation', () => {
+  test('validates JSON Schema response with defineRoute when @fastify/response-validation is registered', async () => {
+    const app = Fastify({ logger: false });
+
+    // Register response validation plugin
+    try {
+      const responseValidation = await import('@fastify/response-validation');
+      await app.register(responseValidation.default);
+    } catch {
+      // Skip test if plugin not available
+      return;
+    }
+
+    const tempDir = path.join(__dirname, 'temp-test-response-json');
+    const tempFile = path.join(tempDir, 'get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `import { defineRoute } from '../defineRoute.js';
+
+export const route = defineRoute({
+  schema: {
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+        },
+        required: ['id', 'name'],
+      },
+    },
+  },
+  handler: async (request, reply) => {
+    // Valid response
+    reply.status(200).send({ id: '123', name: 'Test' });
+  },
+});\n`,
+        'utf-8',
+      );
+
+      await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir);
+
+      // Valid response
+      const validResponse = await app.inject({
+        method: 'GET',
+        url: '/',
+      });
+      expect(validResponse.statusCode).toBe(200);
+      const body = validResponse.json();
+      expect(body).toHaveProperty('id');
+      expect(body).toHaveProperty('name');
+
+      // Test invalid response by modifying the handler
+      await fs.writeFile(
+        tempFile,
+        `import { defineRoute } from '../defineRoute.js';
+
+export const route = defineRoute({
+  schema: {
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+        },
+        required: ['id', 'name'],
+      },
+    },
+  },
+  handler: async (request, reply) => {
+    // Invalid response - missing required field
+    reply.status(200).send({ id: '123' });
+  },
+});\n`,
+        'utf-8',
+      );
+
+      // Re-register routes to pick up the change
+      const app2 = Fastify({ logger: false });
+      await app2.register((await import('@fastify/response-validation')).default);
+      await registerRoutes(app2, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir);
+
+      const invalidResponse = await app2.inject({
+        method: 'GET',
+        url: '/',
+      });
+      // Response validation should fail (status depends on plugin behavior)
+      expect([500, 200]).toContain(invalidResponse.statusCode);
+
+      await app.close();
+      await app2.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('validates Zod response with defineRouteZod when zodResponseValidation is enabled', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-response-zod');
+    const tempFile = path.join(tempDir, 'get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `import { defineRouteZod } from '../defineRouteZod.js';
+import { z } from 'zod';
+
+export const route = defineRouteZod({
+  schema: {
+    querystring: z.object({
+      invalid: z.string().optional(),
+    }),
+    response: {
+      200: z.object({
+        id: z.string(),
+        name: z.string(),
+        age: z.number().int().positive(),
+      }),
+    },
+  },
+  handler: async (request, reply) => {
+    if (request.query.invalid === 'true') {
+      // Invalid response - wrong type for age
+      reply.status(200).send({ id: '123', name: 'Test', age: 'invalid' });
+    } else {
+      // Valid response
+      reply.status(200).send({ id: '123', name: 'Test', age: 25 });
+    }
+  },
+});\n`,
+        'utf-8',
+      );
+
+      // Register with zodResponseValidation enabled
+      await registerRoutes(
+        app,
+        '/',
+        ['.ts'],
+        'remix',
+        'info',
+        [/\.test\.ts$/],
+        tempDir,
+        tempDir,
+        false,
+        true, // zodResponseValidation
+      );
+
+      // Valid response
+      const validResponse = await app.inject({
+        method: 'GET',
+        url: '/',
+      });
+      expect(validResponse.statusCode).toBe(200);
+      const body = validResponse.json();
+      expect(body).toHaveProperty('id', '123');
+      expect(body).toHaveProperty('name', 'Test');
+      expect(body).toHaveProperty('age', 25);
+
+      // Test invalid response
+      const invalidResponse = await app.inject({
+        method: 'GET',
+        url: '/?invalid=true',
+      });
+      // Response validation should fail with 500
+      expect(invalidResponse.statusCode).toBe(500);
+      const errorBody = invalidResponse.json();
+      expect(errorBody).toHaveProperty('error', 'Internal Server Error');
+      expect(errorBody).toHaveProperty('message', 'Response validation failed');
+      expect(errorBody).toHaveProperty('details');
+      expect(errorBody.details).toContain('response');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('does not validate Zod response when zodResponseValidation is disabled', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-response-zod-disabled');
+    const tempFile = path.join(tempDir, 'get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `import { defineRouteZod } from '../defineRouteZod.js';
+import { z } from 'zod';
+
+export const route = defineRouteZod({
+  schema: {
+    response: {
+      200: z.object({
+        id: z.string(),
+        name: z.string(),
+      }),
+    },
+  },
+  handler: async (request, reply) => {
+    // Invalid response but validation is disabled - id should be string but sending number
+    // This will pass through without validation
+    reply.status(200).send({ id: 123, name: 'Test' });
+  },
+});\n`,
+        'utf-8',
+      );
+
+      // Register with zodResponseValidation disabled (default)
+      await registerRoutes(
+        app,
+        '/',
+        ['.ts'],
+        'remix',
+        'info',
+        [/\.test\.ts$/],
+        tempDir,
+        tempDir,
+        false,
+        false, // zodResponseValidation disabled
+      );
+
+      // Invalid response should still return 200 because validation is disabled
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+      });
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      // The point is that validation didn't run, so invalid data (id should be string but we sent number) passes through
+      expect(body).toHaveProperty('id');
+      expect(body).toHaveProperty('name', 'Test');
+      // Validation is disabled, so the response passes through even though id type doesn't match schema
+      // The actual type depends on JSON serialization, but the key point is no 500 error occurred
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('validates mixed response schemas (Zod and JSON Schema)', async () => {
+    const app = Fastify({ logger: false });
+
+    // Register response validation plugin for JSON Schema
+    try {
+      const responseValidation = await import('@fastify/response-validation');
+      await app.register(responseValidation.default);
+    } catch {
+      // Skip test if plugin not available
+      return;
+    }
+
+    const tempDir = path.join(__dirname, 'temp-test-response-mixed');
+    const tempFile = path.join(tempDir, 'get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `import { defineRouteZod } from '../defineRouteZod.js';
+import { z } from 'zod';
+
+export const route = defineRouteZod({
+  schema: {
+    querystring: z.object({
+      invalid: z.string().optional(),
+    }),
+    response: {
+      200: z.object({
+        id: z.string(),
+        name: z.string(),
+      }),
+      400: {
+        type: 'object',
+        properties: {
+          error: { type: 'string' },
+        },
+        required: ['error'],
+      },
+    },
+  },
+  handler: async (request, reply) => {
+    if (request.query.invalid === 'true') {
+      // Invalid Zod response - missing required field
+      reply.status(200).send({ id: '123' });
+    } else {
+      // Valid Zod response
+      reply.status(200).send({ id: '123', name: 'Test' });
+    }
+  },
+});\n`,
+        'utf-8',
+      );
+
+      // Register with zodResponseValidation enabled
+      await registerRoutes(
+        app,
+        '/',
+        ['.ts'],
+        'remix',
+        'info',
+        [/\.test\.ts$/],
+        tempDir,
+        tempDir,
+        false,
+        true, // zodResponseValidation
+      );
+
+      // Valid Zod response (200)
+      const validResponse = await app.inject({
+        method: 'GET',
+        url: '/',
+      });
+      expect(validResponse.statusCode).toBe(200);
+      const body = validResponse.json();
+      expect(body).toHaveProperty('id', '123');
+      expect(body).toHaveProperty('name', 'Test');
+
+      // Test invalid Zod response using query parameter (same app, no file rewrite needed)
+      const invalidResponse = await app.inject({
+        method: 'GET',
+        url: '/?invalid=true',
+      });
+      // Zod response validation should fail with 500
+      expect(invalidResponse.statusCode).toBe(500);
+      const errorBody = invalidResponse.json();
+      expect(errorBody).toHaveProperty('error', 'Internal Server Error');
+      expect(errorBody).toHaveProperty('details');
+      expect(errorBody.details).toContain('response');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});

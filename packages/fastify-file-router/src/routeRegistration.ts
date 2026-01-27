@@ -2,7 +2,7 @@ import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type Ajv from 'ajv';
-import type { FastifyInstance, FastifySchema, LogLevel } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest, FastifySchema, LogLevel } from 'fastify';
 import type { z } from 'zod';
 import { formatJsonSchemaError, formatZodError, type SchemaTypeIndicators } from './defineRouteZod.js';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
@@ -126,6 +126,7 @@ export async function registerRoutes(
   dir: string,
   baseRootDir: string,
   logRoutes: boolean = false,
+  zodResponseValidation: boolean = false,
 ): Promise<void> {
   const dirents = await fs.readdir(dir, { withFileTypes: true });
   const baseSegments = dir.replace(baseRootDir, '').split('/').filter(Boolean);
@@ -155,6 +156,7 @@ export async function registerRoutes(
           fullPath,
           baseRootDir,
           logRoutes,
+          zodResponseValidation,
         );
         return;
       }
@@ -221,6 +223,14 @@ export async function registerRoutes(
       const hasZodSchemas = zodSchemas && Object.keys(zodSchemas as Record<string, unknown>).length > 0;
       const hasSchemaTypes = schemaTypes && Object.keys(schemaTypes as Record<string, unknown>).length > 0;
 
+      // Check if we have Zod response schemas specifically
+      const zodResponseSchemas =
+        zodSchemas && typeof zodSchemas === 'object' && 'response' in zodSchemas
+          ? (zodSchemas as { response?: Record<string | number, z.ZodTypeAny> }).response
+          : undefined;
+      const hasZodResponseSchemas =
+        zodResponseValidation && zodResponseSchemas && Object.keys(zodResponseSchemas).length > 0;
+
       // If we have schema types defined, we need to validate in preValidation for consistent error handling
       const needsCustomValidation = hasZodSchemas || hasSchemaTypes;
 
@@ -261,7 +271,7 @@ export async function registerRoutes(
         // to ensure Fastify uses our no-op validators instead of default ones
         ...(needsCustomValidation
           ? {
-              // Disable Fastify's validator and serializer when we have custom validation to avoid
+              // Disable Fastify's validator when we have custom request validation to avoid
               // double validation and conflicts between Zod validation and JSON Schema validation.
               // Swagger will still process the schema for documentation even with no-op validators.
               // The validatorCompiler signature: ({ schema, method, url, httpPart }) => (data) => result
@@ -272,13 +282,19 @@ export async function registerRoutes(
                 ({ schema, method, url, httpPart }) => {
                   return () => true; // Always pass validation - we handle it in preValidation hook
                 },
-              // Disable serialization validation - response schemas are for documentation only
-              // We use JSON.stringify to bypass fast-json-stringify's schema filtering
-              serializerCompiler:
-                // biome-ignore lint/correctness/noUnusedFunctionParameters lint/nursery/noShadow: Parameters must match Fastify's signature
-                  ({ schema, method, url, httpStatus, contentType }) =>
-                  (data) =>
-                    JSON.stringify(data),
+              // Only disable serializerCompiler if we have Zod response schemas and validation is enabled
+              // Otherwise, let Fastify handle JSON Schema response validation
+              ...(hasZodResponseSchemas
+                ? {
+                    // Disable serialization validation for Zod response schemas - we handle it in preSerialization hook
+                    // We use JSON.stringify to bypass fast-json-stringify's schema filtering
+                    serializerCompiler:
+                      // biome-ignore lint/correctness/noUnusedFunctionParameters lint/nursery/noShadow: Parameters must match Fastify's signature
+                        ({ schema, method, url, httpStatus, contentType }) =>
+                        (data) =>
+                          JSON.stringify(data),
+                  }
+                : {}),
             }
           : {}),
       };
@@ -415,6 +431,64 @@ export async function registerRoutes(
             }
           }
         };
+      }
+
+      // Add preSerialization hook for Zod response schemas when validation is enabled
+      if (hasZodResponseSchemas && zodResponseSchemas) {
+        const zodValidationHook = async (
+          // biome-ignore lint/correctness/noUnusedFunctionParameters: Parameters must match Fastify's signature
+          request: FastifyRequest,
+          reply: FastifyReply,
+          payload: unknown,
+        ) => {
+          const statusCode = reply.statusCode;
+          const zodResponseSchema = zodResponseSchemas[statusCode];
+
+          // If we have a Zod schema for this status code, validate the payload
+          if (zodResponseSchema) {
+            const result = zodResponseSchema.safeParse(payload);
+            if (!result.success) {
+              // Response validation failure is a server error (500)
+              // We need to change the status code and payload before serialization
+              fastify.log.error(
+                {
+                  statusCode,
+                  validationError: result.error,
+                  payload,
+                },
+                'Response validation failed',
+              );
+              // Set status code and replace payload with error
+              reply.code(500);
+              return {
+                error: 'Internal Server Error',
+                message: 'Response validation failed',
+                details: formatZodError(result.error, 'response'),
+              };
+            }
+            // Return validated data (Zod may have transformed it)
+            return result.data;
+          }
+
+          // No Zod schema for this status code, return payload as-is
+          // (JSON Schema validation will be handled by Fastify's serializerCompiler if enabled)
+          return payload;
+        };
+
+        // Handle case where preSerialization might already be set (e.g., by @fastify/response-validation)
+        // Always use array format to be compatible with plugins that expect arrays
+        // Note: @fastify/response-validation registers hooks via onRoute, which runs after route registration
+        // So we set up our hook here, and it will be merged with plugin hooks
+        if (Array.isArray(routeOptions.preSerialization)) {
+          // Append our hook (plugin hooks will be added via onRoute)
+          routeOptions.preSerialization.push(zodValidationHook);
+        } else if (routeOptions.preSerialization) {
+          // If it's already a function, convert to array
+          routeOptions.preSerialization = [routeOptions.preSerialization, zodValidationHook];
+        } else {
+          // Set as array to be compatible with @fastify/response-validation plugin
+          routeOptions.preSerialization = [zodValidationHook];
+        }
       }
 
       fastify.route(routeOptions);

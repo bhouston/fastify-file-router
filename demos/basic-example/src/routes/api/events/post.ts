@@ -30,6 +30,20 @@ const responseSchema = z.object({
   description: z.string(),
   startDate: z.string(),
   endDate: z.string(),
+  duration: z.number().optional(),
+  metadata: z
+    .object({
+      createdAt: z.string(),
+      updatedAt: z.string().optional(),
+    })
+    .optional(),
+  reminderDates: z.array(z.string()).optional(),
+  filters: z
+    .object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    })
+    .optional(),
 });
 export const route = defineRouteZod({
   schema: {

@@ -40,6 +40,14 @@ export type FastifyFileRouterOptions = {
    */
   logRoutes?: boolean;
   /**
+   * Whether to enable validation of Zod response schemas.
+   * When enabled, responses defined with Zod schemas in defineRouteZod will be validated.
+   * Note: This only validates Zod response schemas. For JSON Schema response validation,
+   * register the @fastify/response-validation plugin separately.
+   * @default false
+   */
+  zodResponseValidation?: boolean;
+  /**
    * Exclusion patterns for files to ignore.
    */
   exclude?: RegExp[];

@@ -17,6 +17,7 @@ const fastifyFileRouterPlugin: FastifyPluginAsync<FastifyFileRouterOptions> = as
     convention = 'remix',
     logLevel = 'info',
     logRoutes = false,
+    zodResponseValidation = false,
     // ignore files that start with a dot, or underscore.  Also ignore files that end in .test.js or .test.ts or include __tests__ in the path or include .d.ts
     // also ignore files that end in .spec.js or .spec.ts
     exclude: excludePatterns = defaultExcludePatterns.slice(),
@@ -76,6 +77,7 @@ const fastifyFileRouterPlugin: FastifyPluginAsync<FastifyFileRouterOptions> = as
         absoluteSourceRoutesDir,
         absoluteSourceRoutesDir,
         logRoutes,
+        zodResponseValidation,
       );
     }),
   );

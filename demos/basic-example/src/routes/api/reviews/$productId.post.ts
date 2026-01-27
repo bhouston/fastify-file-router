@@ -43,6 +43,7 @@ export const route = defineRouteZod({
         productId: z.string(),
         rating: z.number(),
         createdAt: z.string(),
+        userId: z.string().optional(),
       }),
       400: {
         type: 'object',

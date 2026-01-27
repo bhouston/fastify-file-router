@@ -372,6 +372,12 @@ This plugin supports the following customizable options.
 - Output the routes being registered and from which files.
 - Default: `false`
 
+**zodResponseValidation**
+
+- Whether to enable validation of Zod response schemas. When enabled, responses defined with Zod schemas in `defineRouteZod` will be validated against their schemas. If validation fails, a 500 error is returned.
+- Note: This only validates Zod response schemas. For JSON Schema response validation, register the `@fastify/response-validation` plugin separately.
+- Default: `false`
+
 ## Plugin Development (for Contributors only)
 
 If you want to contribute, just check out [this git project](https://github.com/bhouston/fastify-file-router) and run the following commands to get going:

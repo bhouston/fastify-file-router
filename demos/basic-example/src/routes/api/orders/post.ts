@@ -38,7 +38,7 @@ export const route = defineRouteZod({
       201: z.object({
         orderId: z.string(),
         total: z.number(),
-        items: z.array(z.object({ productId: z.string(), quantity: z.number() })),
+        items: z.array(z.object({ productId: z.string(), quantity: z.number() })).optional(),
       }),
       400: {
         type: 'object',

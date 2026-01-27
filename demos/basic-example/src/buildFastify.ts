@@ -1,4 +1,6 @@
 import path from 'node:path';
+import ajvFormats from 'ajv-formats';
+import responseValidation from '@fastify/response-validation';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import Fastify, { type LogLevel } from 'fastify';
@@ -52,6 +54,14 @@ export async function getApp(options: GetAppOptions = {}) {
     },
   });
 
+  // Register response validation plugin for JSON Schema response validation
+  // Configure with ajv-formats to support date-time and other formats
+  await app.register(responseValidation, {
+    ajv: {
+      plugins: [ajvFormats],
+    },
+  });
+
   // get current directory on node.
   const currentDir = path.dirname(new URL(import.meta.url).pathname);
   const routesDir = path.join(currentDir, '../src/routes');
@@ -70,6 +80,7 @@ export async function getApp(options: GetAppOptions = {}) {
     // biome-ignore lint/performance/useTopLevelRegex: just a demo
     exclude: [/^[.|_].*/, /\.(test|spec)\.[jt]s$/, /__(test|spec)__/, /\.d\.ts$/],
     mount: '/',
+    zodResponseValidation: true,
   });
 
   return app;
