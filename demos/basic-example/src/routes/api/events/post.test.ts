@@ -211,7 +211,7 @@ describe('POST /api/events', () => {
       },
     });
 
-    // Note: z.coerce.date() might handle invalid dates differently
+    // Note: z.iso.datetime() validates ISO 8601 datetime strings
     // This test verifies the querystring date handling works
     expect([200, 201, 400]).toContain(response.statusCode);
   });

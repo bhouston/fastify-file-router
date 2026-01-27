@@ -10,8 +10,9 @@ const querystringSchema = z.object({
 
 const bodySchema = z.strictObject({
   name: z.string().min(1, 'Name is required').optional(),
-  email: z.string().email('Invalid email format').optional(),
+  email: z.email('Invalid email format').optional(),
   age: z.number().int().min(0).max(150).optional(),
+  createdAt: z.iso.datetime().optional(),
 });
 
 // Define Zod schemas directly - types are automatically inferred!

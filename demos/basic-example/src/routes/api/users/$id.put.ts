@@ -47,18 +47,31 @@ export const route = defineRoute({
     tags: ['users'],
     operationId: 'update-user',
     security: [{ jwtToken: [] }, { secretToken: [] }],
-    params: paramsSchema,
-    body: bodySchema,
+    params: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+      },
+      required: ['id'],
+    } as const,
+    body: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+      },
+      required: ['name', 'email'],
+    } as const,
     response: {
       200: response200Schema,
       404: response404Schema,
     },
-  } satisfies OpenAPIFastifySchema,
+  },
   handler: async (request, reply) => {
     // request.params.id is automatically typed as string - no manual type assertion needed!
     // request.body.name and request.body.email are also correctly typed
-    const { id } = request.params;
-    const { name, email } = request.body;
+    const { id } = request.params as { id: string };
+    const { name, email } = request.body as { name: string; email: string };
 
     // In a real application, you would update the user in the database here
     // For this example, we'll simulate a user not found scenario

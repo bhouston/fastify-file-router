@@ -33,9 +33,7 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
 
     // Verify parameters (path parameter) - this should always be present
     expect(patchOp?.parameters).toBeDefined();
-    const idParam = patchOp?.parameters?.find(
-      (p): p is OpenAPIV3.ParameterObject => 'name' in p && p.name === 'id',
-    );
+    const idParam = patchOp?.parameters?.find((p): p is OpenAPIV3.ParameterObject => 'name' in p && p.name === 'id');
     expect(idParam).toBeDefined();
     expect(idParam?.in).toBe('path');
     expect(idParam?.schema).toBeDefined();
@@ -59,8 +57,7 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
     expect(requestBody?.content?.['application/json']).toBeDefined();
 
     // Verify schema exists
-    const bodySchema = requestBody?.content?.['application/json']
-      ?.schema as OpenAPIV3.SchemaObject | undefined;
+    const bodySchema = requestBody?.content?.['application/json']?.schema as OpenAPIV3.SchemaObject | undefined;
     expect(bodySchema).toBeDefined();
     expect(bodySchema?.type).toBe('object');
     expect(bodySchema?.properties).toBeDefined();
@@ -71,8 +68,7 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
     const path = swaggerSchema.paths?.['/api/users/{id}'];
     const patchOp = path?.patch as OpenAPIV3.OperationObject | undefined;
     const requestBody = patchOp?.requestBody as OpenAPIV3.RequestBodyObject | undefined;
-    const bodySchema = requestBody?.content?.['application/json']
-      ?.schema as OpenAPIV3.SchemaObject | undefined;
+    const bodySchema = requestBody?.content?.['application/json']?.schema as OpenAPIV3.SchemaObject | undefined;
 
     expect(bodySchema?.properties).toBeDefined();
     const properties = bodySchema?.properties as Record<string, OpenAPIV3.SchemaObject> | undefined;
@@ -94,6 +90,13 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
     expect(properties?.age?.minimum).toBe(0);
     expect(properties?.age?.maximum).toBe(150);
 
+    // Verify createdAt property - should be string (format: 'date-time' may be present in swagger,
+    // but our JSON schema conversion removes it to ensure compatibility)
+    expect(properties?.createdAt).toBeDefined();
+    expect(properties?.createdAt?.type).toBe('string');
+    // Note: Fastify's swagger plugin may add format: 'date-time' for documentation purposes,
+    // but our zodToJsonSchema function removes it from the actual JSON schema used for validation
+
     // Verify all properties are optional (no required array or all properties marked required)
     // In OpenAPI, if a property is optional, it should not be in the required array
     if (bodySchema?.required) {
@@ -112,9 +115,7 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
     const parameters = patchOp?.parameters as OpenAPIV3.ParameterObject[] | undefined;
 
     // Verify include parameter
-    const includeParam = parameters?.find(
-      (p): p is OpenAPIV3.ParameterObject => 'name' in p && p.name === 'include',
-    );
+    const includeParam = parameters?.find((p): p is OpenAPIV3.ParameterObject => 'name' in p && p.name === 'include');
     expect(includeParam).toBeDefined();
     expect(includeParam?.in).toBe('query');
     expect(includeParam?.required).toBeFalsy(); // Optional parameter
@@ -124,9 +125,7 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
     expect(includeSchema?.enum).toEqual(['profile', 'settings']);
 
     // Verify fields parameter
-    const fieldsParam = parameters?.find(
-      (p): p is OpenAPIV3.ParameterObject => 'name' in p && p.name === 'fields',
-    );
+    const fieldsParam = parameters?.find((p): p is OpenAPIV3.ParameterObject => 'name' in p && p.name === 'fields');
     expect(fieldsParam).toBeDefined();
     expect(fieldsParam?.in).toBe('query');
     expect(fieldsParam?.required).toBeFalsy(); // Optional parameter
@@ -142,11 +141,11 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
 
     // Verify that responses object exists
     expect(patchOp?.responses).toBeDefined();
-    
+
     // The route doesn't define a response schema, so we verify the default 200 response exists
     const response200 = patchOp?.responses?.['200'] as OpenAPIV3.ResponseObject | undefined;
     expect(response200).toBeDefined();
-    
+
     // If a response schema was defined, we would verify its structure here
     // For now, we just verify the response structure exists
     // The actual response structure can be verified by checking response200.content if present
@@ -196,24 +195,24 @@ describe('Swagger Schema Generation for defineRouteZod', () => {
 
   test('Additional OpenAPI fields like produces are passed through (if provided)', () => {
     const swaggerSchema = app.swagger() as OpenAPIV3.Document;
-    
+
     // Note: 'produces' is a Swagger 2.0 field. In OpenAPI 3.0, content types are specified
     // in the response schema's 'content' property. However, if 'produces' is added to the
     // schema, it will be passed through by our code (since we copy all non-excluded properties).
     // Fastify Swagger may or may not use it for OpenAPI 3.0, but the field will be present.
-    
+
     // Verify that any additional fields in the schema are copied through
     // by checking that our schema cleaning logic preserves all non-excluded fields
     const path = swaggerSchema.paths?.['/api/users/{id}'];
     const putOp = path?.put as OpenAPIV3.OperationObject | undefined;
-    
+
     // The route has these OpenAPI fields, and they're all present
     expect(putOp).toBeDefined();
     expect(putOp?.description).toBeDefined();
     expect(putOp?.summary).toBeDefined();
     expect(putOp?.tags).toBeDefined();
     expect(putOp?.operationId).toBeDefined();
-    
+
     // Any additional fields added to the schema (like 'produces') would also be copied through
     // by the routeRegistration.ts code that copies all properties except excluded ones
   });

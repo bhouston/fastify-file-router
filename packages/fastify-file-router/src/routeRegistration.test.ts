@@ -470,7 +470,7 @@ import { z } from 'zod';
 export const route = defineRouteZod({
   schema: {
     body: z.object({
-      email: z.string().email(),
+      email: z.email(),
     }),
   },
   handler: async (request, reply) => {

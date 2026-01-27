@@ -97,22 +97,15 @@ export interface DefinedZodRoute<T extends ZodRouteSchema> {
 }
 
 /**
- * Converts a Zod schema to JSON Schema, removing the $schema property
+ * Converts a Zod schema to JSON Schema, removing the $schema property.
+ *
+ * Note: z.date() and z.coerce.date() are not supported. Use z.iso.datetime() instead
+ * for date fields, which validates ISO 8601 datetime strings and is JSON-compatible.
  */
 function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
   const jsonSchema = z.toJSONSchema(schema, {
     target: 'draft-2020-12',
     unrepresentable: 'any',
-    override: (ctx) => {
-      // Guard against undefined zodSchema._zod (can happen with certain nested optional structures in zod v4)
-      if (ctx.zodSchema?._zod?.def) {
-        const def = ctx.zodSchema._zod.def;
-        if (def.type === 'date') {
-          ctx.jsonSchema.type = 'string';
-          ctx.jsonSchema.format = 'date-time';
-        }
-      }
-    },
   });
   delete jsonSchema.$schema;
   return jsonSchema as Record<string, unknown>;
@@ -166,7 +159,7 @@ export function formatJsonSchemaError(
  *     }),
  *     body: z.object({
  *       name: z.string().optional(),
- *       email: z.string().email().optional()
+ *       email: z.email().optional()
  *     })
  *   },
  *   handler: async (request, reply) => {

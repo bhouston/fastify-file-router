@@ -143,7 +143,7 @@ export const route = defineRouteZod({
     }),
     body: z.object({
       name: z.string().min(1, 'Name is required').optional(),
-      email: z.string().email('Invalid email format').optional(),
+      email: z.email('Invalid email format').optional(),
       age: z.number().int().min(0).max(150).optional(),
     }),
   },
@@ -202,7 +202,7 @@ export const route = defineRouteZod({
     // Use Zod for body validation
     body: z.object({
       name: z.string().min(1).optional(),
-      email: z.string().email().optional(),
+      email: z.email().optional(),
     }),
     // Use JSON Schema for headers
     headers: {

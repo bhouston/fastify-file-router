@@ -22,29 +22,30 @@ describe('toJsonSchema', () => {
     expect(properties.age).toHaveProperty('type', 'number');
   });
 
-  test('converts date schema to string with date-time format', () => {
+  test('converts iso datetime schema to string (format may be present)', () => {
     const schema = z.object({
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      createdAt: z.iso.datetime(),
+      updatedAt: z.iso.datetime(),
     });
 
     const jsonSchema = toJsonSchema(schema);
 
     const properties = jsonSchema.properties as Record<string, unknown>;
-    // The date conversion may not work in all cases depending on Zod version
-    // Just verify the schema is created successfully
     expect(properties.createdAt).toBeDefined();
+    expect(properties.createdAt).toHaveProperty('type', 'string');
+    // format: 'date-time' may be present - that's fine, Fastify supports it
     expect(properties.updatedAt).toBeDefined();
+    expect(properties.updatedAt).toHaveProperty('type', 'string');
   });
 
   test('handles nested schemas', () => {
     const schema = z.object({
       user: z.object({
         name: z.string(),
-        email: z.string().email(),
+        email: z.email(),
       }),
       metadata: z.object({
-        createdAt: z.date(),
+        createdAt: z.iso.datetime(),
       }),
     });
 
@@ -79,7 +80,7 @@ describe('toJsonSchema', () => {
   test('handles optional fields', () => {
     const schema = z.object({
       name: z.string(),
-      email: z.string().email().optional(),
+      email: z.email().optional(),
     });
 
     const jsonSchema = toJsonSchema(schema);
@@ -130,11 +131,11 @@ describe('toJsonSchema', () => {
     expect(jsonSchema).toHaveProperty('properties');
   });
 
-  test('handles date in nested object', () => {
+  test('handles iso datetime in nested object', () => {
     const schema = z.object({
       user: z.object({
         profile: z.object({
-          createdAt: z.date(),
+          createdAt: z.iso.datetime(),
         }),
       }),
     });
@@ -145,8 +146,8 @@ describe('toJsonSchema', () => {
     const userProperties = (properties.user as Record<string, unknown>).properties as Record<string, unknown>;
     const profileProperties = (userProperties.profile as Record<string, unknown>).properties as Record<string, unknown>;
 
-    // The date conversion may not work in all cases depending on Zod version
-    // Just verify the schema is created successfully
     expect(profileProperties.createdAt).toBeDefined();
+    expect(profileProperties.createdAt).toHaveProperty('type', 'string');
+    // format: 'date-time' may be present - that's fine
   });
 });

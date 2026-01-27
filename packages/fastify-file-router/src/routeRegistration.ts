@@ -259,22 +259,28 @@ export async function registerRoutes(
         handler,
         // Set validatorCompiler and serializerCompiler BEFORE adding preValidation hook
         // to ensure Fastify uses our no-op validators instead of default ones
-        ...(needsCustomValidation ? {
-          // Disable Fastify's validator and serializer when we have custom validation to avoid
-          // double validation and conflicts between Zod validation and JSON Schema validation.
-          // Swagger will still process the schema for documentation even with no-op validators.
-          // The validatorCompiler signature: ({ schema, method, url, httpPart }) => (data) => result
-          // Returns a function that always returns true (validation passes)
-          // Match the exact signature from Fastify tests to ensure compatibility
-          validatorCompiler: ({ schema, method, url, httpPart }) => {
-            return () => true; // Always pass validation - we handle it in preValidation hook
-          },
-          // Disable serialization validation - response schemas are for documentation only
-          // We use JSON.stringify to bypass fast-json-stringify's schema filtering
-          serializerCompiler: ({ schema, method, url, httpStatus, contentType }) => {
-            return (data) => JSON.stringify(data);
-          },
-        } : {}),
+        ...(needsCustomValidation
+          ? {
+              // Disable Fastify's validator and serializer when we have custom validation to avoid
+              // double validation and conflicts between Zod validation and JSON Schema validation.
+              // Swagger will still process the schema for documentation even with no-op validators.
+              // The validatorCompiler signature: ({ schema, method, url, httpPart }) => (data) => result
+              // Returns a function that always returns true (validation passes)
+              // Match the exact signature from Fastify tests to ensure compatibility
+              validatorCompiler:
+                // biome-ignore lint/correctness/noUnusedFunctionParameters lint/nursery/noShadow: Parameters must match Fastify's signature
+                ({ schema, method, url, httpPart }) => {
+                  return () => true; // Always pass validation - we handle it in preValidation hook
+                },
+              // Disable serialization validation - response schemas are for documentation only
+              // We use JSON.stringify to bypass fast-json-stringify's schema filtering
+              serializerCompiler:
+                // biome-ignore lint/correctness/noUnusedFunctionParameters lint/nursery/noShadow: Parameters must match Fastify's signature
+                  ({ schema, method, url, httpStatus, contentType }) =>
+                  (data) =>
+                    JSON.stringify(data),
+            }
+          : {}),
       };
 
       // Add preValidation hook for routes with Zod schemas or mixed schemas
