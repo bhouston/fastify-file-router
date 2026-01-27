@@ -1,24 +1,6 @@
 import { defineRoute } from 'fastify-file-router';
-import type { OpenAPIFastifySchema } from '../../../types/OpenAPIFastifySchema.js';
 
 // PUT /api/users/:id
-
-const paramsSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string' },
-  },
-  required: ['id'],
-} as const;
-
-const bodySchema = {
-  type: 'object',
-  properties: {
-    name: { type: 'string' },
-    email: { type: 'string', format: 'email' },
-  },
-  required: ['name', 'email'],
-} as const;
 
 const response200Schema = {
   type: 'object',

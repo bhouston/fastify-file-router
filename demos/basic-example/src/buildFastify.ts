@@ -1,8 +1,8 @@
 import path from 'node:path';
-import ajvFormats from 'ajv-formats';
 import responseValidation from '@fastify/response-validation';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import ajvFormats from 'ajv-formats';
 import Fastify, { type LogLevel } from 'fastify';
 import { fastifyFileRouter } from 'fastify-file-router';
 
