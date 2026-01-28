@@ -37,6 +37,18 @@ describe('toRouteRemixStyle', () => {
     expect(toRouteRemixStyle(['api', 'users', '$id', 'posts'], '/test')).toBe('api/users/:id/posts');
   });
 
+  test('converts literal dots using [.] notation', () => {
+    expect(toRouteRemixStyle(['api', 'v1', '[.]', '0'], '/test')).toBe('api/v1.0');
+    expect(toRouteRemixStyle(['api', 'v1', '[.]', '0', 'status'], '/test')).toBe('api/v1.0/status');
+    expect(toRouteRemixStyle(['api', 'v1', '[.]', '0', '[.]', '1'], '/test')).toBe('api/v1.0.1');
+  });
+
+  test('throws error for [.] at start of route', () => {
+    expect(() => toRouteRemixStyle(['[.]', 'api'], '/test/file.ts')).toThrow(
+      'Invalid segment "[.]" at start of route in file /test/file.ts',
+    );
+  });
+
   test('throws error for invalid segments', () => {
     expect(() => toRouteRemixStyle(['api', '[id]'], '/test/file.ts')).toThrow(
       'Invalid segment "[id]" in file /test/file.ts',
@@ -63,6 +75,12 @@ describe('toRouteNextStyle', () => {
     expect(toRouteNextStyle(['api', 'files', 'hashes', '[...path]'], '/test')).toBe('api/files/hashes/*');
   });
 
+  test('converts literal dots using [.] notation', () => {
+    expect(toRouteNextStyle(['api', 'v1', '[.]', '0'], '/test')).toBe('api/v1.0');
+    expect(toRouteNextStyle(['api', 'v1', '[.]', '0', 'status'], '/test')).toBe('api/v1.0/status');
+    expect(toRouteNextStyle(['api', 'v1', '[.]', '0', '[.]', '1'], '/test')).toBe('api/v1.0.1');
+  });
+
   // Optional parameters with double brackets are not currently supported
   // test('handles optional parameters', () => {
   //   expect(toRouteNextStyle(['api', 'users', '[[id]]'], '/test')).toBe('api/users/:id');
@@ -75,6 +93,12 @@ describe('toRouteNextStyle', () => {
     // $ prefix is Remix style, not Next.js
     expect(() => toRouteNextStyle(['api', '$id'], '/test/file.ts')).toThrow(
       'Invalid segment "$id" in file /test/file.ts',
+    );
+  });
+
+  test('throws error for [.] at start of route', () => {
+    expect(() => toRouteNextStyle(['[.]', 'api'], '/test/file.ts')).toThrow(
+      'Invalid segment "[.]" at start of route in file /test/file.ts',
     );
   });
 

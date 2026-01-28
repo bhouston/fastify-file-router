@@ -49,6 +49,29 @@ describe('parseFileName', () => {
       'Invalid file name ".ts" in file /test/.ts, method segment is missing',
     );
   });
+
+  test('parses filenames with literal dots using [.] notation', () => {
+    const result = parseFileName('api.v1[.].0.get.ts', ['.ts'], '/test/api.v1[.].0.get.ts');
+    expect(result).toEqual({
+      routeSegments: ['api', 'v1', '[.]', '0'],
+      method: 'get',
+      extension: '.ts',
+    });
+
+    const result2 = parseFileName('api[.].v1.get.ts', ['.ts'], '/test/api[.].v1.get.ts');
+    expect(result2).toEqual({
+      routeSegments: ['api', '[.]', 'v1'],
+      method: 'get',
+      extension: '.ts',
+    });
+
+    const result3 = parseFileName('v1[.].0[.].1.get.ts', ['.ts'], '/test/v1[.].0[.].1.get.ts');
+    expect(result3).toEqual({
+      routeSegments: ['v1', '[.]', '0', '[.]', '1'],
+      method: 'get',
+      extension: '.ts',
+    });
+  });
 });
 
 describe('convertRoutePath', () => {
@@ -100,6 +123,43 @@ describe('shouldExcludeFile', () => {
     const patterns = [/^[.|_].*/, /\.test\.ts$/];
     expect(shouldExcludeFile('get.ts', patterns)).toBeUndefined();
     expect(shouldExcludeFile('api.health.get.ts', patterns)).toBeUndefined();
+  });
+});
+
+describe('routeRegistration - literal dots', () => {
+  test('registers route with literal dot using [.] notation', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-literal-dot');
+    const tempFile = path.join(tempDir, 'api.v1[.].0.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `import { defineRoute } from '../defineRoute.js';
+
+export const route = defineRoute({
+  handler: async (request, reply) => {
+    reply.send({ version: '1.0' });
+  },
+});\n`,
+        'utf-8',
+      );
+
+      await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir);
+
+      // Test that the route is registered at /api/v1.0
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/v1.0',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty('version', '1.0');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
   });
 });
 

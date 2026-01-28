@@ -21,7 +21,15 @@ export function parseFileName(
   extensions: string[],
   fullPath: string,
 ): { routeSegments: string[]; method: string; extension: string } | null {
-  const segments = fileName.split('.');
+  // Replace [.] with a placeholder that doesn't contain dots
+  // Since [.] represents a literal dot in the route, we replace it before splitting
+  const placeholder = '__LITERAL_DOT__';
+  
+  // Replace [.] with placeholder (no dots in placeholder to avoid splitting issues)
+  const fileNameWithPlaceholder = fileName.replace(/\[\.\]/g, placeholder);
+  
+  // Split by dots - the placeholder will be part of a segment
+  const segments = fileNameWithPlaceholder.split('.');
 
   // Check segment count first
   if (segments.length < 2) {
@@ -30,9 +38,34 @@ export function parseFileName(
     );
   }
 
-  const extensionSegment = `.${segments[segments.length - 1]}`;
-  const methodSegment = segments[segments.length - 2];
-  const routeSegments = segments.slice(0, -2);
+  // Process segments: split segments that contain the placeholder and restore [.]
+  const processedSegments: string[] = [];
+  for (const seg of segments) {
+    if (seg === placeholder) {
+      // Standalone placeholder segment
+      processedSegments.push('[.]');
+    } else if (seg.includes(placeholder)) {
+      // Segment contains placeholder - split it
+      const parts = seg.split(placeholder);
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (part) {
+          processedSegments.push(part);
+        }
+        // Add [.] between parts (but not after the last part)
+        if (i < parts.length - 1) {
+          processedSegments.push('[.]');
+        }
+      }
+    } else if (seg) {
+      // Regular segment (filter out empty strings)
+      processedSegments.push(seg);
+    }
+  }
+
+  const extensionSegment = `.${processedSegments[processedSegments.length - 1]}`;
+  const methodSegment = processedSegments[processedSegments.length - 2];
+  const routeSegments = processedSegments.slice(0, -2);
 
   if (!extensions.includes(extensionSegment)) {
     return null;

@@ -5,10 +5,12 @@ export const validMethods = ['delete', 'get', 'head', 'patch', 'post', 'put'] as
 export const methodRegex = new RegExp(`^(${validMethods.join('|')})(\\..+)?$`);
 
 // Regex patterns for route conversion
-export const remixSegment = /^\$?[^[\]$&]*$/;
+// Allow [.] for literal dots, but exclude it from the character class to handle separately
+export const remixSegment = /^\$?(\[\.\]|[^[\]$&]*)$/;
 export const remixParamRegex = /^\$(?<param>.*)$/;
 // Next.js convention: segments must not start with $ (that's Remix style)
-export const nextSegment = /^(?!\$)[[]?(?:\.\.\.|[^[\]&]*)[\]]?$/;
+// Allow [.] for literal dots
+export const nextSegment = /^(?!\$)(\[\.\]|[[]?(?:\.\.\.|[^[\]&]*)[\]]?)$/;
 export const nextParamRegex = /^\[(?<param>.*)\]$/;
 
 // Default exclude patterns
