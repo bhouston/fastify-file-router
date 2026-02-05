@@ -3,8 +3,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import { describe, expect, test } from 'vitest';
+import { z } from 'zod';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
-import { buildUrl, convertRoutePath, parseFileName, registerRoutes, shouldExcludeFile } from './routeRegistration.js';
+import {
+  buildUrl,
+  convertRoutePath,
+  extractJsonSchemaParams,
+  extractRouteParams,
+  extractZodSchemaParams,
+  parseFileName,
+  registerRoutes,
+  shouldExcludeFile,
+  validateParamsSchema,
+} from './routeRegistration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -123,6 +134,182 @@ describe('shouldExcludeFile', () => {
     const patterns = [/^[.|_].*/, /\.test\.ts$/];
     expect(shouldExcludeFile('get.ts', patterns)).toBeUndefined();
     expect(shouldExcludeFile('api.health.get.ts', patterns)).toBeUndefined();
+  });
+});
+
+describe('extractRouteParams', () => {
+  test('extracts single parameter from route path', () => {
+    expect(extractRouteParams('/files/:oid')).toEqual(['oid']);
+    expect(extractRouteParams('/api/users/:id')).toEqual(['id']);
+  });
+
+  test('extracts multiple parameters from route path', () => {
+    expect(extractRouteParams('/users/:id/posts/:postId')).toEqual(['id', 'postId']);
+    expect(extractRouteParams('/api/:orgName/:projectName/:assetName')).toEqual(['orgName', 'projectName', 'assetName']);
+  });
+
+  test('returns empty array for routes without parameters', () => {
+    expect(extractRouteParams('/api/health')).toEqual([]);
+    expect(extractRouteParams('/files')).toEqual([]);
+  });
+
+  test('returns empty array for wildcard routes', () => {
+    expect(extractRouteParams('/files/*')).toEqual([]);
+    expect(extractRouteParams('/api/files/hashes/*')).toEqual([]);
+  });
+
+  test('handles route paths without leading slash', () => {
+    expect(extractRouteParams('files/:oid')).toEqual(['oid']);
+    expect(extractRouteParams('api/users/:id')).toEqual(['id']);
+  });
+});
+
+describe('extractJsonSchemaParams', () => {
+  test('extracts property names from JSON Schema params', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+      },
+      required: ['id'],
+    };
+    expect(extractJsonSchemaParams(schema)).toEqual(['id']);
+  });
+
+  test('extracts multiple property names', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        postId: { type: 'string' },
+      },
+      required: ['id', 'postId'],
+    };
+    expect(extractJsonSchemaParams(schema)).toEqual(['id', 'postId']);
+  });
+
+  test('returns empty array for invalid schema', () => {
+    expect(extractJsonSchemaParams(null)).toEqual([]);
+    expect(extractJsonSchemaParams(undefined)).toEqual([]);
+    expect(extractJsonSchemaParams({})).toEqual([]);
+    expect(extractJsonSchemaParams({ type: 'string' })).toEqual([]);
+  });
+
+  test('handles schema without properties', () => {
+    expect(extractJsonSchemaParams({ type: 'object' })).toEqual([]);
+  });
+});
+
+describe('extractZodSchemaParams', () => {
+  test('extracts property names from Zod object schema', () => {
+    const schema = z.object({
+      id: z.string(),
+    });
+    expect(extractZodSchemaParams(schema)).toEqual(['id']);
+  });
+
+  test('extracts multiple property names', () => {
+    const schema = z.object({
+      id: z.string(),
+      postId: z.string(),
+    });
+    expect(extractZodSchemaParams(schema)).toEqual(['id', 'postId']);
+  });
+
+  test('returns empty array for non-object Zod schemas', () => {
+    expect(extractZodSchemaParams(z.string())).toEqual([]);
+    expect(extractZodSchemaParams(z.number())).toEqual([]);
+    expect(extractZodSchemaParams(z.array(z.string()))).toEqual([]);
+  });
+});
+
+describe('validateParamsSchema', () => {
+  test('passes validation when schema properties match route parameters', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        oid: { type: 'string' },
+      },
+      required: ['oid'],
+    };
+    expect(() => validateParamsSchema('/files/:oid', schema, 'json', '/test/file.ts')).not.toThrow();
+  });
+
+  test('passes validation for multiple matching parameters', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        postId: { type: 'string' },
+      },
+      required: ['id', 'postId'],
+    };
+    expect(() =>
+      validateParamsSchema('/users/:id/posts/:postId', schema, 'json', '/test/file.ts'),
+    ).not.toThrow();
+  });
+
+  test('throws error when schema properties do not match route parameters', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        oid: { type: 'string' },
+      },
+      required: ['oid'],
+    };
+    expect(() => validateParamsSchema('/files/:id', schema, 'json', '/test/file.ts')).toThrow(
+      'Parameter schema mismatch',
+    );
+    expect(() => validateParamsSchema('/files/:id', schema, 'json', '/test/file.ts')).toThrow(
+      'Missing in route path: oid',
+    );
+  });
+
+  test('skips validation for wildcard routes', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+      },
+    };
+    expect(() => validateParamsSchema('/files/*', schema, 'json', '/test/file.ts')).not.toThrow();
+  });
+
+  test('skips validation when no params schema', () => {
+    expect(() => validateParamsSchema('/files/:id', undefined, undefined, '/test/file.ts')).not.toThrow();
+  });
+
+  test('validates Zod schemas', () => {
+    const zodParamsSchema = z.object({
+      oid: z.string(),
+    });
+    expect(() => validateParamsSchema('/files/:oid', zodParamsSchema, 'zod', '/test/file.ts')).not.toThrow();
+    expect(() => validateParamsSchema('/files/:id', zodParamsSchema, 'zod', '/test/file.ts')).toThrow('Parameter schema mismatch');
+  });
+
+  test('auto-detects schema type when not specified', () => {
+    const zodSchema = z.object({
+      id: z.string(),
+    });
+    const jsonSchema = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+      },
+    };
+
+    expect(() => validateParamsSchema('/files/:id', zodSchema, undefined, '/test/file.ts')).not.toThrow();
+    expect(() => validateParamsSchema('/files/:id', jsonSchema, undefined, '/test/file.ts')).not.toThrow();
+  });
+
+  test('handles routes without parameters but with schema', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+      },
+    };
+    expect(() => validateParamsSchema('/api/health', schema, 'json', '/test/file.ts')).toThrow('Parameter schema mismatch');
   });
 });
 
@@ -405,6 +592,261 @@ describe('routeRegistration integration', () => {
       await expect(
         registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
       ).rejects.toThrow('Route schema in file');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('routeRegistration - parameter schema validation', () => {
+  test('throws error when JSON Schema params do not match route path', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-validation');
+    const tempFile = path.join(tempDir, '$id.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler() {}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: {
+      oid: { type: 'string' }
+    },
+    required: ['oid']
+  }
+};\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).rejects.toThrow('Parameter schema mismatch');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('passes validation when JSON Schema params match route path', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-validation-pass');
+    const tempFile = path.join(tempDir, '$id.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler() {}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'string' }
+    },
+    required: ['id']
+  }
+};\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).resolves.not.toThrow();
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('throws error when Zod params do not match route path', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-validation-zod');
+    const tempFile = path.join(tempDir, '$id.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `import { defineRouteZod } from '../defineRouteZod.js';
+import { z } from 'zod';
+
+export const route = defineRouteZod({
+  schema: {
+    params: z.object({
+      oid: z.string()
+    })
+  },
+  handler: async () => {}
+});\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).rejects.toThrow('Parameter schema mismatch');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('passes validation when Zod params match route path', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-validation-zod-pass');
+    const tempFile = path.join(tempDir, '$id.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `import { defineRouteZod } from '../defineRouteZod.js';
+import { z } from 'zod';
+
+export const route = defineRouteZod({
+  schema: {
+    params: z.object({
+      id: z.string()
+    })
+  },
+  handler: async () => {}
+});\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).resolves.not.toThrow();
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('skips validation for wildcard routes', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-validation-wildcard');
+    const tempFile = path.join(tempDir, '$.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler() {}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: {
+      path: { type: 'string' }
+    }
+  }
+};\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).resolves.not.toThrow();
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('skips validation when no params schema', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-validation-no-schema');
+    const tempFile = path.join(tempDir, '$id.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler() {}\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).resolves.not.toThrow();
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('validates multiple parameters correctly', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-validation-multi');
+    const tempFile = path.join(tempDir, '$orgName.$projectName.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler() {}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: {
+      orgName: { type: 'string' },
+      projectName: { type: 'string' }
+    },
+    required: ['orgName', 'projectName']
+  }
+};\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).resolves.not.toThrow();
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('throws error when multiple parameters do not match', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-validation-multi-fail');
+    const tempFile = path.join(tempDir, '$orgName.$projectName.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler() {}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: {
+      orgName: { type: 'string' },
+      assetName: { type: 'string' }
+    },
+    required: ['orgName', 'assetName']
+  }
+};\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).rejects.toThrow('Parameter schema mismatch');
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).rejects.toThrow('Missing in route path: assetName');
 
       await app.close();
     } finally {

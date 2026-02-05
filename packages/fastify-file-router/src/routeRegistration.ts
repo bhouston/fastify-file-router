@@ -4,7 +4,7 @@ import path from 'node:path';
 import type Ajv from 'ajv';
 import type { FastifyInstance, FastifyReply, FastifyRequest, FastifySchema, LogLevel } from 'fastify';
 import type { z } from 'zod';
-import { formatJsonSchemaError, formatZodError, type SchemaTypeIndicators } from './defineRouteZod.js';
+import { formatJsonSchemaError, formatZodError, isZodSchema, type SchemaTypeIndicators } from './defineRouteZod.js';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
 import { toHttpMethod, toRouteNextStyle, toRouteRemixStyle } from './routeConverter.js';
 import type { RouteHandler, RouteModule, RouteSchema } from './types.js';
@@ -139,6 +139,134 @@ export function shouldExcludeFile(fileName: string, excludePatterns: RegExp[]): 
 }
 
 /**
+ * Extracts parameter names from a route path.
+ * @param routePath - The route path (e.g., '/files/:oid' or '/users/:id/posts/:postId')
+ * @returns Array of parameter names, or empty array if route contains wildcard
+ */
+export function extractRouteParams(routePath: string): string[] {
+  // Skip validation for wildcard routes
+  if (routePath.includes('*')) {
+    return [];
+  }
+
+  // Extract parameter names using regex to match :paramName patterns
+  const paramRegex = /:([^/]+)/g;
+  const params: string[] = [];
+  const matches = routePath.matchAll(paramRegex);
+
+  for (const match of matches) {
+    if (match[1]) {
+      params.push(match[1]);
+    }
+  }
+
+  return params;
+}
+
+/**
+ * Extracts property names from a JSON Schema params object.
+ * @param schema - The JSON Schema params object
+ * @returns Array of property names
+ */
+export function extractJsonSchemaParams(schema: unknown): string[] {
+  if (!schema || typeof schema !== 'object') {
+    return [];
+  }
+
+  const schemaObj = schema as Record<string, unknown>;
+  const properties = schemaObj.properties;
+
+  if (!properties || typeof properties !== 'object') {
+    return [];
+  }
+
+  return Object.keys(properties);
+}
+
+/**
+ * Extracts property names from a Zod object schema.
+ * @param zodSchema - The Zod schema
+ * @returns Array of property names
+ */
+export function extractZodSchemaParams(zodSchema: z.ZodTypeAny): string[] {
+  // Check if it's a ZodObject by checking for shape property
+  // ZodObject has a shape property in its _def
+  const def = zodSchema._def as { shape?: Record<string, z.ZodTypeAny> };
+  
+  if (!def || !('shape' in def)) {
+    return [];
+  }
+
+  const shape = def.shape;
+  if (!shape || typeof shape !== 'object') {
+    return [];
+  }
+
+  return Object.keys(shape);
+}
+
+/**
+ * Validates that param schema properties match route path parameters.
+ * @param routePath - The route path
+ * @param paramsSchema - The params schema (JSON Schema or Zod)
+ * @param schemaType - The type of schema ('zod' | 'json' | undefined)
+ * @param fullPath - The full path to the route file (for error messages)
+ * @throws Error if schema properties don't match route parameters
+ */
+export function validateParamsSchema(
+  routePath: string,
+  paramsSchema: unknown,
+  schemaType: 'zod' | 'json' | undefined,
+  fullPath: string,
+): void {
+  // Skip validation if no params schema
+  if (!paramsSchema) {
+    return;
+  }
+
+  // Extract route parameters
+  const routeParams = extractRouteParams(routePath);
+
+  // Skip validation for wildcard routes (already handled in extractRouteParams)
+  if (routePath.includes('*')) {
+    return;
+  }
+
+  // Extract schema properties based on schema type
+  let schemaParams: string[] = [];
+  if (schemaType === 'zod' && isZodSchema(paramsSchema)) {
+    schemaParams = extractZodSchemaParams(paramsSchema);
+  } else if (schemaType === 'json') {
+    schemaParams = extractJsonSchemaParams(paramsSchema);
+  } else if (schemaType === undefined) {
+    // Try to detect schema type
+    if (isZodSchema(paramsSchema)) {
+      schemaParams = extractZodSchemaParams(paramsSchema);
+    } else {
+      schemaParams = extractJsonSchemaParams(paramsSchema);
+    }
+  }
+
+  // If schema has no properties, skip validation
+  if (schemaParams.length === 0) {
+    return;
+  }
+
+  // Check that all schema properties exist in route parameters
+  const missingInRoute = schemaParams.filter((param) => !routeParams.includes(param));
+
+  if (missingInRoute.length > 0) {
+    throw new Error(
+      `Parameter schema mismatch in file ${fullPath}\n` +
+        `  Route path: ${routePath}\n` +
+        `  Schema defines parameter(s): ${schemaParams.join(', ')}\n` +
+        `  But route path only has parameter(s): ${routeParams.length > 0 ? routeParams.join(', ') : 'none'}\n` +
+        `  Missing in route path: ${missingInRoute.join(', ')}`,
+    );
+  }
+}
+
+/**
  * Registers routes from a directory recursively.
  * @param fastify - The Fastify instance
  * @param mount - The mount point for routes
@@ -251,6 +379,26 @@ export async function registerRoutes(
         schema && '__zodSchemas' in schema ? (schema as { __zodSchemas: unknown }).__zodSchemas : undefined;
       const schemaTypes =
         schema && '__schemaTypes' in schema ? (schema as { __schemaTypes: unknown }).__schemaTypes : undefined;
+
+      // Validate that param schema properties match route path parameters
+      if (schema?.params) {
+        const paramsSchemaType = schemaTypes && typeof schemaTypes === 'object' && 'params' in schemaTypes
+          ? (schemaTypes as SchemaTypeIndicators).params
+          : undefined;
+        
+        // Get the actual params schema (could be Zod or JSON Schema)
+        // For Zod schemas, use the original Zod schema from zodSchemas if available
+        // Otherwise, use the JSON Schema from schema.params
+        let paramsSchema: unknown = schema.params;
+        if (paramsSchemaType === 'zod' && zodSchemas && typeof zodSchemas === 'object' && 'params' in zodSchemas) {
+          const zodParamsSchema = (zodSchemas as { params?: z.ZodTypeAny }).params;
+          if (zodParamsSchema) {
+            paramsSchema = zodParamsSchema;
+          }
+        }
+
+        validateParamsSchema(routePath, paramsSchema, paramsSchemaType, fullPath);
+      }
 
       // Check if we have any Zod schemas (if so, we need custom validation)
       const hasZodSchemas = zodSchemas && Object.keys(zodSchemas as Record<string, unknown>).length > 0;
