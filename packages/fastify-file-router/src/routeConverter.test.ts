@@ -43,6 +43,12 @@ describe('toRouteRemixStyle', () => {
     expect(toRouteRemixStyle(['api', 'v1', '[.]', '0', '[.]', '1'], '/test')).toBe('api/v1.0.1');
   });
 
+  test('stops parameter extraction at [.] - parameter ends before literal dot', () => {
+    expect(toRouteRemixStyle(['$assetName', '[.]', 'glb'], '/test')).toBe(':assetName.glb');
+    expect(toRouteRemixStyle(['api', '$fileName', '[.]', 'json'], '/test')).toBe('api/:fileName.json');
+    expect(toRouteRemixStyle(['files', '$id', '[.]', 'txt'], '/test')).toBe('files/:id.txt');
+  });
+
   test('throws error for [.] at start of route', () => {
     expect(() => toRouteRemixStyle(['[.]', 'api'], '/test/file.ts')).toThrow(
       'Invalid segment "[.]" at start of route in file /test/file.ts',

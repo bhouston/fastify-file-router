@@ -32,12 +32,27 @@ function mergeLiteralDots(segments: string[], fullPath: string): string[] {
       if (merged.length === 0) {
         throw new Error(`Invalid segment "[.]" at start of route in file ${fullPath}`);
       }
-      const next = segments[i + 1];
-      if (next) {
-        merged[merged.length - 1] += `.${next}`;
-        i++; // Skip next segment
+      // Don't merge [.] if the previous segment is a parameter (starts with $)
+      // Parameters should end at [.], and [.] + next segment should be merged separately
+      const prevSegment = merged[merged.length - 1];
+      if (prevSegment?.startsWith('$')) {
+        // Keep the parameter segment as-is, merge [.] with next segment
+        const next = segments[i + 1];
+        if (next) {
+          merged.push(`.${next}`);
+          i++; // Skip next segment
+        } else {
+          merged.push('.');
+        }
       } else {
-        merged[merged.length - 1] += '.';
+        // Normal merge: merge [.] with previous segment
+        const next = segments[i + 1];
+        if (next) {
+          merged[merged.length - 1] += `.${next}`;
+          i++; // Skip next segment
+        } else {
+          merged[merged.length - 1] += '.';
+        }
       }
     } else {
       merged.push(segment);
@@ -55,19 +70,35 @@ function mergeLiteralDots(segments: string[], fullPath: string): string[] {
  */
 export function toRouteRemixStyle(segments: string[], fullPath: string): string {
   const merged = mergeLiteralDots(segments, fullPath);
-  return merged
-    .map((segment) => {
-      if (!remixSegment.test(segment)) {
-        throw new Error(`Invalid segment "${segment}" in file ${fullPath}`);
+  const pathParts: string[] = [];
+  
+  for (let i = 0; i < merged.length; i++) {
+    const segment = merged[i];
+    if (!segment) continue;
+    
+    if (!remixSegment.test(segment)) {
+      throw new Error(`Invalid segment "${segment}" in file ${fullPath}`);
+    }
+    
+    // If segment starts with '.', append it to the previous segment (no / separator)
+    if (segment.startsWith('.')) {
+      if (pathParts.length === 0) {
+        throw new Error(`Invalid segment "${segment}" at start of route in file ${fullPath}`);
       }
-      const match = segment.match(remixParamRegex);
-      if (match?.groups) {
-        const param = match.groups.param;
-        return param && param.length > 0 ? `:${param}` : '*';
-      }
-      return segment;
-    })
-    .join('/');
+      pathParts[pathParts.length - 1] += segment;
+      continue;
+    }
+    
+    const match = segment.match(remixParamRegex);
+    if (match?.groups) {
+      const param = match.groups.param;
+      pathParts.push(param && param.length > 0 ? `:${param}` : '*');
+    } else {
+      pathParts.push(segment);
+    }
+  }
+  
+  return pathParts.join('/');
 }
 
 /**
@@ -79,23 +110,39 @@ export function toRouteRemixStyle(segments: string[], fullPath: string): string 
  */
 export function toRouteNextStyle(segments: string[], fullPath: string): string {
   const merged = mergeLiteralDots(segments, fullPath);
-  return merged
-    .map((segment) => {
-      if (!nextSegment.test(segment)) {
-        throw new Error(`Invalid segment "${segment}" in file ${fullPath}`);
+  const pathParts: string[] = [];
+  
+  for (let i = 0; i < merged.length; i++) {
+    const segment = merged[i];
+    if (!segment) continue;
+    
+    if (!nextSegment.test(segment)) {
+      throw new Error(`Invalid segment "${segment}" in file ${fullPath}`);
+    }
+    
+    // If segment starts with '.', append it to the previous segment (no / separator)
+    if (segment.startsWith('.')) {
+      if (pathParts.length === 0) {
+        throw new Error(`Invalid segment "${segment}" at start of route in file ${fullPath}`);
       }
-      const match = segment.match(nextParamRegex);
-      if (match?.groups) {
-        const param = match.groups.param;
-        if (param?.startsWith('...')) {
-          return '*';
-        }
-        if (param && param.length > 0) {
-          return `:${param}`;
-        }
+      pathParts[pathParts.length - 1] += segment;
+      continue;
+    }
+    
+    const match = segment.match(nextParamRegex);
+    if (match?.groups) {
+      const param = match.groups.param;
+      if (param?.startsWith('...')) {
+        pathParts.push('*');
+      } else if (param && param.length > 0) {
+        pathParts.push(`:${param}`);
+      } else {
         throw new Error(`Invalid segment "${segment}" in convention "next"`);
       }
-      return segment;
-    })
-    .join('/');
+    } else {
+      pathParts.push(segment);
+    }
+  }
+  
+  return pathParts.join('/');
 }

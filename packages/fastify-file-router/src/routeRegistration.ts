@@ -150,7 +150,9 @@ export function extractRouteParams(routePath: string): string[] {
   }
 
   // Extract parameter names using regex to match :paramName patterns
-  const paramRegex = /:([^/]+)/g;
+  // Stop at dots (.) since [.] ends a parameter and starts a literal segment
+  // e.g., /:assetName.glb should extract 'assetName', not 'assetName.glb'
+  const paramRegex = /:([^/.]+)/g;
   const params: string[] = [];
   const matches = routePath.matchAll(paramRegex);
 

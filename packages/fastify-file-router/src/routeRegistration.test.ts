@@ -162,6 +162,13 @@ describe('extractRouteParams', () => {
     expect(extractRouteParams('files/:oid')).toEqual(['oid']);
     expect(extractRouteParams('api/users/:id')).toEqual(['id']);
   });
+
+  test('stops parameter extraction at dots - [.] ends parameter name', () => {
+    expect(extractRouteParams('/:assetName.glb')).toEqual(['assetName']);
+    expect(extractRouteParams('/api/:fileName.json')).toEqual(['fileName']);
+    expect(extractRouteParams('/files/:id.txt')).toEqual(['id']);
+    expect(extractRouteParams('/:assetName.glb/:otherParam')).toEqual(['assetName', 'otherParam']);
+  });
 });
 
 describe('extractJsonSchemaParams', () => {
@@ -847,6 +854,87 @@ export const schema = {
       await expect(
         registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
       ).rejects.toThrow('Missing in route path: assetName');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('handles parameter ending at [.] - only extracts parameter name before literal dot', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-literal-dot');
+    const tempFile = path.join(tempDir, '$assetName[.]glb.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler(request, reply) {
+  const { assetName } = request.params;
+  reply.status(200).send({ assetName, extension: 'glb' });
+}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: {
+      assetName: { type: 'string' }
+    },
+    required: ['assetName']
+  }
+};\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).resolves.not.toThrow();
+
+      // Verify the route works and extracts the correct parameter
+      const response = await app.inject({
+        method: 'GET',
+        url: '/my-asset.glb',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty('assetName', 'my-asset');
+      expect(body).toHaveProperty('extension', 'glb');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('throws error if schema includes parameter name after [.]', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-param-literal-dot-fail');
+    const tempFile = path.join(tempDir, '$assetName[.]glb.get.ts');
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler() {}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: {
+      'assetName.glb': { type: 'string' }
+    },
+    required: ['assetName.glb']
+  }
+};\n`,
+        'utf-8',
+      );
+
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).rejects.toThrow('Parameter schema mismatch');
+      await expect(
+        registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),
+      ).rejects.toThrow('Missing in route path: assetName.glb');
 
       await app.close();
     } finally {
