@@ -406,6 +406,10 @@ pnpm clean
 pnpm make-release
 ```
 
+## Author
+
+[Ben Houston](https://benhouston3d.com), Sponsored by [Land of Assets](https://landofassets.com)
+
 [npm]: https://img.shields.io/npm/v/fastify-file-router
 [npm-url]: https://www.npmjs.com/package/fastify-file-router
 [npm-downloads]: https://img.shields.io/npm/dw/fastify-file-router
