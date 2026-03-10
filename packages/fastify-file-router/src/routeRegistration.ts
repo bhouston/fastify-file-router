@@ -24,10 +24,10 @@ export function parseFileName(
   // Replace [.] with a placeholder that doesn't contain dots
   // Since [.] represents a literal dot in the route, we replace it before splitting
   const placeholder = '__LITERAL_DOT__';
-  
+
   // Replace [.] with placeholder (no dots in placeholder to avoid splitting issues)
   const fileNameWithPlaceholder = fileName.replace(/\[\.\]/g, placeholder);
-  
+
   // Split by dots - the placeholder will be part of a segment
   const segments = fileNameWithPlaceholder.split('.');
 
@@ -124,6 +124,15 @@ export function buildUrl(routePath: string, mount: string): string {
 }
 
 /**
+ * Returns true if a directory segment is a route group (parenthesized).
+ * Route groups like (auth) or (marketing) are used for organization only and do not appear in the URL.
+ * @param segment - A single path segment (directory name)
+ */
+export function isRouteGroupSegment(segment: string): boolean {
+  return segment.length >= 2 && segment.startsWith('(') && segment.endsWith(')');
+}
+
+/**
  * Checks if a file should be excluded based on exclude patterns.
  * @param fileName - The filename to check
  * @param excludePatterns - Array of regex patterns to match against
@@ -194,7 +203,7 @@ export function extractZodSchemaParams(zodSchema: z.ZodTypeAny): string[] {
   // Check if it's a ZodObject by checking for shape property
   // ZodObject has a shape property in its _def
   const def = zodSchema._def as { shape?: Record<string, z.ZodTypeAny> };
-  
+
   if (!def || !('shape' in def)) {
     return [];
   }
@@ -292,7 +301,11 @@ export async function registerRoutes(
   zodResponseValidation: boolean = false,
 ): Promise<void> {
   const dirents = await fs.readdir(dir, { withFileTypes: true });
-  const baseSegments = dir.replace(baseRootDir, '').split('/').filter(Boolean);
+  const baseSegments = dir
+    .replace(baseRootDir, '')
+    .split('/')
+    .filter(Boolean)
+    .filter((seg) => !isRouteGroupSegment(seg));
 
   await Promise.all(
     dirents.map(async (dirent: Dirent) => {
@@ -384,10 +397,11 @@ export async function registerRoutes(
 
       // Validate that param schema properties match route path parameters
       if (schema?.params) {
-        const paramsSchemaType = schemaTypes && typeof schemaTypes === 'object' && 'params' in schemaTypes
-          ? (schemaTypes as SchemaTypeIndicators).params
-          : undefined;
-        
+        const paramsSchemaType =
+          schemaTypes && typeof schemaTypes === 'object' && 'params' in schemaTypes
+            ? (schemaTypes as SchemaTypeIndicators).params
+            : undefined;
+
         // Get the actual params schema (could be Zod or JSON Schema)
         // For Zod schemas, use the original Zod schema from zodSchemas if available
         // Otherwise, use the JSON Schema from schema.params

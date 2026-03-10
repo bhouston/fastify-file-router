@@ -11,6 +11,7 @@ import {
   extractJsonSchemaParams,
   extractRouteParams,
   extractZodSchemaParams,
+  isRouteGroupSegment,
   parseFileName,
   registerRoutes,
   shouldExcludeFile,
@@ -122,6 +123,27 @@ describe('buildUrl', () => {
   });
 });
 
+describe('isRouteGroupSegment', () => {
+  test('returns true for parenthesized directory names', () => {
+    expect(isRouteGroupSegment('(auth)')).toBe(true);
+    expect(isRouteGroupSegment('(marketing)')).toBe(true);
+    expect(isRouteGroupSegment('(internal)')).toBe(true);
+  });
+
+  test('returns false for non-parenthesized names', () => {
+    expect(isRouteGroupSegment('auth')).toBe(false);
+    expect(isRouteGroupSegment('api')).toBe(false);
+    expect(isRouteGroupSegment('(unclosed')).toBe(false);
+    expect(isRouteGroupSegment('unclosed)')).toBe(false);
+    expect(isRouteGroupSegment('()')).toBe(true); // edge case: empty parens still match pattern
+  });
+
+  test('returns false for single character or empty', () => {
+    expect(isRouteGroupSegment('(a)')).toBe(true);
+    expect(isRouteGroupSegment('')).toBe(false);
+  });
+});
+
 describe('shouldExcludeFile', () => {
   test('excludes files matching patterns', () => {
     const patterns = [/^[.|_].*/, /\.test\.ts$/];
@@ -145,7 +167,11 @@ describe('extractRouteParams', () => {
 
   test('extracts multiple parameters from route path', () => {
     expect(extractRouteParams('/users/:id/posts/:postId')).toEqual(['id', 'postId']);
-    expect(extractRouteParams('/api/:orgName/:projectName/:assetName')).toEqual(['orgName', 'projectName', 'assetName']);
+    expect(extractRouteParams('/api/:orgName/:projectName/:assetName')).toEqual([
+      'orgName',
+      'projectName',
+      'assetName',
+    ]);
   });
 
   test('returns empty array for routes without parameters', () => {
@@ -251,9 +277,7 @@ describe('validateParamsSchema', () => {
       },
       required: ['id', 'postId'],
     };
-    expect(() =>
-      validateParamsSchema('/users/:id/posts/:postId', schema, 'json', '/test/file.ts'),
-    ).not.toThrow();
+    expect(() => validateParamsSchema('/users/:id/posts/:postId', schema, 'json', '/test/file.ts')).not.toThrow();
   });
 
   test('throws error when schema properties do not match route parameters', () => {
@@ -291,7 +315,9 @@ describe('validateParamsSchema', () => {
       oid: z.string(),
     });
     expect(() => validateParamsSchema('/files/:oid', zodParamsSchema, 'zod', '/test/file.ts')).not.toThrow();
-    expect(() => validateParamsSchema('/files/:id', zodParamsSchema, 'zod', '/test/file.ts')).toThrow('Parameter schema mismatch');
+    expect(() => validateParamsSchema('/files/:id', zodParamsSchema, 'zod', '/test/file.ts')).toThrow(
+      'Parameter schema mismatch',
+    );
   });
 
   test('auto-detects schema type when not specified', () => {
@@ -316,7 +342,9 @@ describe('validateParamsSchema', () => {
         id: { type: 'string' },
       },
     };
-    expect(() => validateParamsSchema('/api/health', schema, 'json', '/test/file.ts')).toThrow('Parameter schema mismatch');
+    expect(() => validateParamsSchema('/api/health', schema, 'json', '/test/file.ts')).toThrow(
+      'Parameter schema mismatch',
+    );
   });
 });
 
@@ -349,6 +377,159 @@ export const route = defineRoute({
       });
       expect(response.statusCode).toBe(200);
       expect(response.json()).toHaveProperty('version', '1.0');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('routeRegistration - route group directories', () => {
+  test('ignores parenthesized directory: (auth)/login.get.ts registers at /login', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-route-group');
+    const authDir = path.join(tempDir, '(auth)');
+    const tempFile = path.join(authDir, 'login.get.ts');
+
+    try {
+      await fs.mkdir(authDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler(request, reply) {
+  reply.send({ route: 'login' });
+}\n`,
+        'utf-8',
+      );
+
+      await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/login',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty('route', 'login');
+
+      // (auth) must not appear in URL
+      const badResponse = await app.inject({
+        method: 'GET',
+        url: '/(auth)/login',
+      });
+      expect(badResponse.statusCode).toBe(404);
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('ignores parenthesized directory in nested path: api/(auth)/users/$id.get.ts registers at /api/users/:id', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-route-group-nested');
+    const authUsersDir = path.join(tempDir, 'api', '(auth)', 'users');
+    const tempFile = path.join(authUsersDir, '$id.get.ts');
+
+    try {
+      await fs.mkdir(path.dirname(tempFile), { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler(request, reply) {
+  reply.send({ id: request.params.id });
+}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string' } },
+    required: ['id'],
+  },
+};\n`,
+        'utf-8',
+      );
+
+      await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/users/abc-123',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty('id', 'abc-123');
+
+      const badResponse = await app.inject({
+        method: 'GET',
+        url: '/api/(auth)/users/abc-123',
+      });
+      expect(badResponse.statusCode).toBe(404);
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('ignores parenthesized directory with next convention: (auth)/users/[id].get.ts registers at /users/:id', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-route-group-next');
+    const authUsersDir = path.join(tempDir, '(auth)', 'users');
+    const tempFile = path.join(authUsersDir, '[id].get.ts');
+
+    try {
+      await fs.mkdir(path.dirname(tempFile), { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler(request, reply) {
+  reply.send({ id: request.params.id });
+}
+export const schema = {
+  params: {
+    type: 'object',
+    properties: { id: { type: 'string' } },
+    required: ['id'],
+  },
+};\n`,
+        'utf-8',
+      );
+
+      await registerRoutes(app, '/', ['.ts'], 'next', 'info', [/\.test\.ts$/], tempDir, tempDir);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/users/next-id',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty('id', 'next-id');
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('normal directories are still included in route path', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-route-group-guardrail');
+    const realDir = path.join(tempDir, 'real');
+    const tempFile = path.join(realDir, 'get.ts');
+
+    try {
+      await fs.mkdir(realDir, { recursive: true });
+      await fs.writeFile(
+        tempFile,
+        `export default async function handler(request, reply) {
+  reply.send({ path: 'real' });
+}\n`,
+        'utf-8',
+      );
+
+      await registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/real',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty('path', 'real');
 
       await app.close();
     } finally {
@@ -776,11 +957,7 @@ export const schema = {
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
-      await fs.writeFile(
-        tempFile,
-        `export default async function handler() {}\n`,
-        'utf-8',
-      );
+      await fs.writeFile(tempFile, `export default async function handler() {}\n`, 'utf-8');
 
       await expect(
         registerRoutes(app, '/', ['.ts'], 'remix', 'info', [/\.test\.ts$/], tempDir, tempDir),

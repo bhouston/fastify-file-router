@@ -71,15 +71,15 @@ function mergeLiteralDots(segments: string[], fullPath: string): string[] {
 export function toRouteRemixStyle(segments: string[], fullPath: string): string {
   const merged = mergeLiteralDots(segments, fullPath);
   const pathParts: string[] = [];
-  
+
   for (let i = 0; i < merged.length; i++) {
     const segment = merged[i];
     if (!segment) continue;
-    
+
     if (!remixSegment.test(segment)) {
       throw new Error(`Invalid segment "${segment}" in file ${fullPath}`);
     }
-    
+
     // If segment starts with '.', append it to the previous segment (no / separator)
     if (segment.startsWith('.')) {
       if (pathParts.length === 0) {
@@ -88,7 +88,7 @@ export function toRouteRemixStyle(segments: string[], fullPath: string): string 
       pathParts[pathParts.length - 1] += segment;
       continue;
     }
-    
+
     const match = segment.match(remixParamRegex);
     if (match?.groups) {
       const param = match.groups.param;
@@ -97,7 +97,7 @@ export function toRouteRemixStyle(segments: string[], fullPath: string): string 
       pathParts.push(segment);
     }
   }
-  
+
   return pathParts.join('/');
 }
 
@@ -111,15 +111,15 @@ export function toRouteRemixStyle(segments: string[], fullPath: string): string 
 export function toRouteNextStyle(segments: string[], fullPath: string): string {
   const merged = mergeLiteralDots(segments, fullPath);
   const pathParts: string[] = [];
-  
+
   for (let i = 0; i < merged.length; i++) {
     const segment = merged[i];
     if (!segment) continue;
-    
+
     if (!nextSegment.test(segment)) {
       throw new Error(`Invalid segment "${segment}" in file ${fullPath}`);
     }
-    
+
     // If segment starts with '.', append it to the previous segment (no / separator)
     if (segment.startsWith('.')) {
       if (pathParts.length === 0) {
@@ -128,7 +128,7 @@ export function toRouteNextStyle(segments: string[], fullPath: string): string {
       pathParts[pathParts.length - 1] += segment;
       continue;
     }
-    
+
     const match = segment.match(nextParamRegex);
     if (match?.groups) {
       const param = match.groups.param;
@@ -143,6 +143,6 @@ export function toRouteNextStyle(segments: string[], fullPath: string): string {
       pathParts.push(segment);
     }
   }
-  
+
   return pathParts.join('/');
 }

@@ -314,4 +314,53 @@ describe('fastifyFileRouter - nested directory routes', () => {
       await fs.rm(tempBuildRoot, { recursive: true, force: true });
     }
   });
+
+  test('ignores parenthesized route group directories when registering routes', async () => {
+    const app = Fastify({ logger: false });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+
+    const tempBuildRoot = path.join(__dirname, 'temp-test-plugin-route-group');
+    const tempRoutesDir = path.join(tempBuildRoot, 'routes');
+    const groupDir = path.join(tempRoutesDir, '(auth)');
+    const loginDir = path.join(groupDir, 'login');
+
+    try {
+      await fs.mkdir(loginDir, { recursive: true });
+      const getFile = path.join(loginDir, 'get.ts');
+      await fs.writeFile(
+        getFile,
+        `export default async function handler(request, reply) {
+          reply.status(200).send({ route: 'login' });
+        }`,
+        'utf-8',
+      );
+
+      const buildRoot = path.relative(cwd, tempBuildRoot);
+      await app.register(fastifyFileRouter, {
+        buildRoot,
+        routesDirs: ['routes'],
+        extensions: ['.ts'],
+        convention: 'remix',
+      });
+
+      await app.ready();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/login',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ route: 'login' });
+
+      const badResponse = await app.inject({
+        method: 'GET',
+        url: '/(auth)/login',
+      });
+      expect(badResponse.statusCode).toBe(404);
+
+      await app.close();
+    } finally {
+      await fs.rm(tempBuildRoot, { recursive: true, force: true });
+    }
+  });
 });

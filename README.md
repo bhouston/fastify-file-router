@@ -31,8 +31,15 @@ fastify.register(fastifyFileRouter);
 
 You can use any combination of file names and directories. We support either [NextJS](https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes) or [Remix](https://remix.run/docs/en/main/file-conventions/routes) conventions for interpreting filenames and directories.
 
+### File and directory layout
+
 ```
 /routes
+├── (auth)  // a route group, ignored by router, but useful for semantic grouping
+│   ├── login
+│   │   └── get.ts      → GET /login
+│   └── signup
+│       └── get.ts      → GET /signup
 ├── api
 │   ├── files
 │   │   ├── $id.get.ts // named parameter id, Remix-style
@@ -115,6 +122,8 @@ export const route = defineRoute({
 The above will result in these routes being registered:
 
 ```
+GET /login
+GET /signup
 GET /api/files/:id
 GET /api/files/hashes/*
 GET /api/health
