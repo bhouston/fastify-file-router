@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',   
+    environment: 'node',
     watch: false,
     isolate: false,
     coverage: {
@@ -18,9 +18,8 @@ export default defineConfig({
         '**/tests/**',
         '**/*.d.ts',
         '**/vitest.config.ts',
-        '**/vitest.config.js'
-      ]
-    }
+        '**/vitest.config.js',
+      ],
+    },
   },
 });
-

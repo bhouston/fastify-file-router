@@ -1,39 +1,43 @@
 {
   "name": "fastify-file-router",
-  "description": "A fastify plugin that automatically registers routes from files in a directory.",
   "version": "3.0.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "license": "MIT",
-  "author": "Ben Houston <neuralsoft@gmail.com> (https://benhouston3d.com)",
+  "description": "A fastify plugin that automatically registers routes from files in a directory.",
   "keywords": [
-    "router",
-    "file-router",
-    "directory",
     "automatic",
+    "directory",
     "fastify",
-    "plugin",
+    "file-router",
     "nodejs",
+    "plugin",
+    "router",
     "typescript"
   ],
   "homepage": "https://github.com/bhouston/fastify-file-router#readme",
+  "bugs": {
+    "url": "https://github.com/bhouston/fastify-file-router/issues"
+  },
+  "license": "MIT",
+  "author": "Ben Houston <neuralsoft@gmail.com> (https://benhouston3d.com)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bhouston/fastify-file-router"
   },
-  "bugs": {
-    "url": "https://github.com/bhouston/fastify-file-router/issues"
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "tsgo",
+    "dev": "tsgo --watch",
+    "tsgo": "tsgo"
   },
   "dependencies": {
     "fastify": "^5.0.0",
     "fastify-plugin": "^5.0.1",
     "json-schema-to-ts": "^3.1.1"
-  },
-  "peerDependencies": {
-    "fastify": "^5",
-    "zod": "^4",
-    "ajv": "^8"
   },
   "devDependencies": {
     "@fastify/response-validation": "^3.0.0",
@@ -42,16 +46,12 @@
     "vitest": "^2.1.8",
     "zod": "^4"
   },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
+  "peerDependencies": {
+    "ajv": "^8",
+    "fastify": "^5",
+    "zod": "^4"
   },
   "engines": {
     "node": ">=24.0.0"
-  },
-  "scripts": {
-    "build": "tsgo",
-    "dev": "tsgo --watch",
-    "tsgo": "tsgo"
   }
 }

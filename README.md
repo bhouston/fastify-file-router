@@ -62,7 +62,7 @@ import { defineRoute } from 'fastify-file-router';
 export const route = defineRoute({
   handler: async (request, reply) => {
     reply.status(204).send();
-  }
+  },
 });
 ```
 
@@ -76,10 +76,10 @@ export const route = defineRoute({
     params: {
       type: 'object',
       properties: {
-        id: { type: 'string' }
+        id: { type: 'string' },
       },
-      required: ['id']
-    } as const
+      required: ['id'],
+    } as const,
   },
   handler: async (request, reply) => {
     // request.params.id is correctly typed as string
@@ -88,9 +88,9 @@ export const route = defineRoute({
     reply.status(200).send({
       id,
       name: 'John Doe',
-      email: 'john.doe@microsoft.com'
+      email: 'john.doe@microsoft.com',
     });
-  }
+  },
 });
 ```
 
@@ -105,17 +105,17 @@ export const route = defineRoute({
       type: 'object',
       properties: {
         email: { type: 'string' },
-        password: { type: 'string' }
+        password: { type: 'string' },
       },
-      required: ['email', 'password']
-    } as const
+      required: ['email', 'password'],
+    } as const,
   },
   handler: async (request, reply) => {
     // request.body.email and request.body.password are correctly typed
     const { email, password } = request.body;
 
     reply.status(201).send({ message: 'User created successfully' });
-  }
+  },
 });
 ```
 
@@ -276,18 +276,18 @@ import type { OpenAPIFastifySchema } from '../types/OpenAPIFastifySchema.js';
 const paramsSchema = {
   type: 'object',
   properties: {
-    id: { type: 'string' }
+    id: { type: 'string' },
   },
-  required: ['id']
+  required: ['id'],
 } as const;
 
 const bodySchema = {
   type: 'object',
   properties: {
     name: { type: 'string' },
-    email: { type: 'string', format: 'email' }
+    email: { type: 'string', format: 'email' },
   },
-  required: ['name', 'email']
+  required: ['name', 'email'],
 } as const;
 
 export const route = defineRoute({
@@ -305,29 +305,30 @@ export const route = defineRoute({
         properties: {
           id: { type: 'string' },
           name: { type: 'string' },
-          email: { type: 'string' }
-        }
+          email: { type: 'string' },
+        },
       },
       404: {
         type: 'object',
         properties: {
           error: { type: 'string' },
-          message: { type: 'string' }
-        }
-      }
-    }
+          message: { type: 'string' },
+        },
+      },
+    },
   } satisfies OpenAPIFastifySchema,
   handler: async (request, reply) => {
     // request.params.id, request.body.name, and request.body.email are all correctly typed
     const { id } = request.params;
     const { name, email } = request.body;
-    
+
     reply.status(200).send({ id, name, email });
-  }
+  },
 });
 ```
 
 Using `satisfies OpenAPIFastifySchema` ensures that:
+
 - Your schema conforms to the extended schema type (including OpenAPI properties)
 - Type inference works correctly for `request.params`, `request.body`, `request.query`, and `request.headers`
 - You get full IntelliSense support for both standard Fastify schema properties and your custom extensions
@@ -387,32 +388,17 @@ This plugin supports the following customizable options.
 - Note: This only validates Zod response schemas. For JSON Schema response validation, register the `@fastify/response-validation` plugin separately.
 - Default: `false`
 
-## Plugin Development (for Contributors only)
+## Development
 
-If you want to contribute, just check out [this git project](https://github.com/bhouston/fastify-file-router) and run the following commands to get going:
-
-```sh
-# install dependencies
+```bash
 pnpm install
-
-# hot-reloading development server
 pnpm dev
-
-# build & start server
-pnpm build && pnpm start
-
-# prettify/lint via biome
-pnpm biome check --write
-
-
-# tests
-pnpm vitest
-
-# clean everything, should be like doing a fresh git checkout of the repo.
-pnpm clean
-
-# publish the npm package
-pnpm make-release
+pnpm tsc # typescript-native
+pnpm build
+pnpm lint # oxlint
+pnpm lint:fix
+pnpm format # oxfmt
+pnpm test # vitest
 ```
 
 ## Author

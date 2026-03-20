@@ -1,9 +1,10 @@
 {
   "extends": "../../tsconfig.node.json",
-  "include": ["src"],
   "compilerOptions": {
+    "composite": true,
     "noEmit": true,
-    "allowImportingTsExtensions": true,
     "declaration": false
-  }
+  },
+  "include": ["src"],
+  "references": [{ "path": "../../packages/fastify-file-router" }]
 }

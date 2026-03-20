@@ -20,9 +20,7 @@ export default defineConfig({
         '**/vitest.config.ts',
         '**/vitest.config.js',
         '**/publish',
-      ]
-    }
+      ],
+    },
   },
-  
 });
-

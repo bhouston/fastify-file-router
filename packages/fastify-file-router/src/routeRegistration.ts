@@ -1,7 +1,6 @@
 import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type Ajv from 'ajv';
 import type { FastifyInstance, FastifyReply, FastifyRequest, FastifySchema, LogLevel } from 'fastify';
 import type { z } from 'zod';
 import { formatJsonSchemaError, formatZodError, isZodSchema, type SchemaTypeIndicators } from './defineRouteZod.js';
@@ -476,7 +475,7 @@ export async function registerRoutes(
               // Match the exact signature from Fastify tests to ensure compatibility
               validatorCompiler:
                 // biome-ignore lint/correctness/noUnusedFunctionParameters lint/nursery/noShadow: Parameters must match Fastify's signature
-                ({ schema, method, url, httpPart }) => {
+                ({ schema: _schema, method: _method, url: _url, httpPart: _httpPart }) => {
                   return () => true; // Always pass validation - we handle it in preValidation hook
                 },
               // Only disable serializerCompiler if we have Zod response schemas and validation is enabled
@@ -487,7 +486,13 @@ export async function registerRoutes(
                     // We use JSON.stringify to bypass fast-json-stringify's schema filtering
                     serializerCompiler:
                       // biome-ignore lint/correctness/noUnusedFunctionParameters lint/nursery/noShadow: Parameters must match Fastify's signature
-                        ({ schema, method, url, httpStatus, contentType }) =>
+                      ({
+                        schema: _schema,
+                        method: _method,
+                        url: _url,
+                        httpStatus: _httpStatus,
+                        contentType: _contentType,
+                      }) =>
                         (data) =>
                           JSON.stringify(data),
                   }
@@ -498,22 +503,19 @@ export async function registerRoutes(
 
       // Add preValidation hook for routes with Zod schemas or mixed schemas
       if (needsCustomValidation) {
-        // Create Ajv instance for JSON Schema validation
-        // We use dynamic import to avoid requiring ajv if not using mixed schemas
-        let AjvClass: typeof Ajv | undefined;
+        // Create Ajv instance for JSON Schema validation (peer dependency).
+        let ajvInstance: import('ajv').Ajv | undefined;
         try {
           const ajvModule = await import('ajv');
-          AjvClass = ajvModule.default;
+          const AjvCtor = ajvModule.default as unknown as new (options?: {
+            allErrors?: boolean;
+            coerceTypes?: boolean | 'array';
+            useDefaults?: boolean;
+          }) => import('ajv').Ajv;
+          ajvInstance = new AjvCtor({ allErrors: true, coerceTypes: true, useDefaults: true });
         } catch {
-          // Ajv not available - this should not happen if peer dependency is installed
-          // but we handle it gracefully by skipping JSON Schema validation in preValidation
-          AjvClass = undefined;
+          ajvInstance = undefined;
         }
-
-        // Enable type coercion for querystring (HTTP querystring params are always strings)
-        const ajvInstance = AjvClass
-          ? new AjvClass({ allErrors: true, coerceTypes: true, useDefaults: true })
-          : undefined;
 
         routeOptions.preValidation = async (request, reply) => {
           type ZodTypeAny = z.ZodTypeAny;
@@ -634,7 +636,7 @@ export async function registerRoutes(
       if (hasZodResponseSchemas && zodResponseSchemas) {
         const zodValidationHook = async (
           // biome-ignore lint/correctness/noUnusedFunctionParameters: Parameters must match Fastify's signature
-          request: FastifyRequest,
+          _request: FastifyRequest,
           reply: FastifyReply,
           payload: unknown,
         ) => {

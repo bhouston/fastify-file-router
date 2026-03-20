@@ -9,41 +9,47 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [24.x]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.17.0
-      
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Run type check
-        run: pnpm tsgo
-      
+        run: pnpm tsc
+
+      - name: Run build
+        run: pnpm build
+
       - name: Run linter
-        run: pnpm check
+        run: pnpm lint
+
+      - name: Run format check
+        run: pnpm format
 
       - name: Run tests
-        run: pnpm vitest
+        run: pnpm test
 
       - name: Run tests with coverage
         run: cd packages/fastify-file-router && pnpm vitest run --coverage
-      
+
       - name: Find coverage files
         id: coverage
         run: |
@@ -58,7 +64,7 @@ jobs:
             echo "has_coverage=true" >> $GITHUB_OUTPUT
             echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Upload coverage reports to Codecov
         if: steps.coverage.outputs.has_coverage == 'true'
         uses: codecov/codecov-action@v4
@@ -70,4 +76,3 @@ jobs:
           fail_ci_if_error: false
           directory: ./
           verbose: true
-
