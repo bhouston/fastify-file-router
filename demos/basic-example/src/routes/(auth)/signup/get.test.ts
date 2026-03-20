@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { getApp } from '../../../buildFastify.ts';
+import { getApp } from '../../../buildFastify.js';
 
 describe('GET /signup (route group (auth))', () => {
   let app: FastifyInstance;

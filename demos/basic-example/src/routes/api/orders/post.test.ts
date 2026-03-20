@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { getApp } from '../../../buildFastify.ts';
+import { getApp } from '../../../buildFastify.js';
 
 describe('POST /api/orders - Mixed JSON Schema querystring + Zod body', () => {
   let app: FastifyInstance;

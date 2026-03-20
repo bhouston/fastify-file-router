@@ -1,4 +1,4 @@
-import { getApp } from './buildFastify.ts';
+import { getApp } from './buildFastify.js';
 
 // https://fastify.dev/docs/latest/Guides/Serverless/#google-cloud-run
 // Google Cloud Run will set this environment variable for you, so

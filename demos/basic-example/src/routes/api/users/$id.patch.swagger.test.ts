@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { OpenAPIV3 } from 'openapi-types';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { getApp } from '../../../buildFastify.ts';
+import { getApp } from '../../../buildFastify.js';
 
 describe('Swagger Schema Generation for defineRouteZod', () => {
   let app: FastifyInstance;

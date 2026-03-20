@@ -58,7 +58,7 @@ export async function getApp(options: GetAppOptions = {}) {
   // Configure with ajv-formats to support date-time and other formats
   await app.register(responseValidation, {
     ajv: {
-      plugins: [ajvFormats],
+      plugins: [[ajvFormats as unknown as (ajv: unknown) => void, { mode: 'fast' }]],
     },
   });
 
