@@ -9,10 +9,19 @@ import { fastifyFileRouter } from 'fastify-file-router';
 type GetAppOptions = {
   logRoutes?: boolean;
   logLevel?: LogLevel;
+  profileRoutes?: boolean;
+  profileSlowestCount?: number;
+  profileLogIndividualRoutes?: boolean;
 };
 
 export async function getApp(options: GetAppOptions = {}) {
-  const { logRoutes = false, logLevel = 'info' } = options;
+  const {
+    logRoutes = false,
+    logLevel = 'info',
+    profileRoutes = true,
+    profileSlowestCount = 15,
+    profileLogIndividualRoutes = true,
+  } = options;
   const app = Fastify({
     logger: { level: logLevel },
     trustProxy: true,
@@ -81,6 +90,11 @@ export async function getApp(options: GetAppOptions = {}) {
     exclude: [/^[.|_].*/, /\.(test|spec)\.[jt]s$/, /__(test|spec)__/, /\.d\.ts$/],
     mount: '/',
     zodResponseValidation: true,
+    profile: {
+      enabled: profileRoutes,
+      slowestRoutesCount: profileSlowestCount,
+      logIndividualRoutes: profileLogIndividualRoutes,
+    },
   });
 
   return app;

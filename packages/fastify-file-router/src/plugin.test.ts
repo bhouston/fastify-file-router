@@ -364,3 +364,119 @@ describe('fastifyFileRouter - nested directory routes', () => {
     }
   });
 });
+
+describe('fastifyFileRouter - performance options', () => {
+  test('throws error when maxConcurrentTasks is invalid', async () => {
+    const app = Fastify({ logger: false });
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        maxConcurrentTasks: 0,
+      }),
+    ).rejects.toThrow('Invalid maxConcurrentTasks "0", must be an integer greater than 0');
+
+    await app.close();
+  });
+
+  test('throws error when profile.slowestRoutesCount is invalid', async () => {
+    const app = Fastify({ logger: false });
+
+    await expect(
+      app.register(fastifyFileRouter, {
+        profile: {
+          enabled: true,
+          slowestRoutesCount: 0,
+        },
+      }),
+    ).rejects.toThrow('Invalid profile.slowestRoutesCount "0", must be an integer greater than 0');
+
+    await app.close();
+  });
+
+  test('warns when routesDirs overlap', async () => {
+    const app = Fastify({ logger: { level: 'info' } });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+
+    const tempBuildRoot = path.join(__dirname, 'temp-test-plugin-overlap');
+    const routesDir = path.join(tempBuildRoot, 'routes');
+    const nestedDir = path.join(routesDir, 'api');
+
+    const warnMessages: string[] = [];
+    const originalWarn = app.log.warn;
+    app.log.warn = ((message: string) => {
+      warnMessages.push(message);
+      originalWarn.call(app.log, message);
+    }) as typeof originalWarn;
+
+    try {
+      await fs.mkdir(nestedDir, { recursive: true });
+      await fs.writeFile(
+        path.join(routesDir, 'health.get.ts'),
+        'export default async function handler() {}\n',
+        'utf-8',
+      );
+      await fs.writeFile(
+        path.join(nestedDir, 'status.get.ts'),
+        'export default async function handler() {}\n',
+        'utf-8',
+      );
+
+      const buildRoot = path.relative(cwd, tempBuildRoot);
+      await app.register(fastifyFileRouter, {
+        buildRoot,
+        routesDirs: ['routes', 'routes/api'],
+        extensions: ['.ts'],
+      });
+      await app.ready();
+
+      expect(warnMessages.some((msg) => msg.includes('Overlapping routesDirs detected'))).toBe(true);
+      await app.close();
+    } finally {
+      await fs.rm(tempBuildRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('logs profile summary and slow routes when enabled', async () => {
+    const app = Fastify({ logger: { level: 'info' } });
+    const cwd = process.env.REMIX_ROOT ?? process.cwd();
+
+    const tempBuildRoot = path.join(__dirname, 'temp-test-plugin-profile');
+    const routesDir = path.join(tempBuildRoot, 'routes');
+    const logMessages: string[] = [];
+    const originalInfo = app.log.info;
+    app.log.info = ((message: string) => {
+      logMessages.push(message);
+      originalInfo.call(app.log, message);
+    }) as typeof originalInfo;
+
+    try {
+      await fs.mkdir(routesDir, { recursive: true });
+      await fs.writeFile(
+        path.join(routesDir, 'get.ts'),
+        `export default async function handler(_request, reply) { reply.send({ ok: true }); }\n`,
+        'utf-8',
+      );
+      const buildRoot = path.relative(cwd, tempBuildRoot);
+
+      await app.register(fastifyFileRouter, {
+        buildRoot,
+        routesDirs: ['routes'],
+        extensions: ['.ts'],
+        profile: {
+          enabled: true,
+          slowestRoutesCount: 1,
+          logIndividualRoutes: true,
+        },
+      });
+      await app.ready();
+
+      expect(logMessages.some((msg) => msg.includes('[fastify-file-router profile] loaded'))).toBe(true);
+      expect(logMessages.some((msg) => msg.includes('[fastify-file-router profile] slow route'))).toBe(true);
+      expect(logMessages.some((msg) => msg.includes('[fastify-file-router profile] route GET /'))).toBe(true);
+
+      await app.close();
+    } finally {
+      await fs.rm(tempBuildRoot, { recursive: true, force: true });
+    }
+  });
+});

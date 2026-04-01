@@ -1,12 +1,115 @@
-import type { Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 import type { FastifyInstance, FastifyReply, FastifyRequest, FastifySchema, LogLevel } from 'fastify';
+import pLimit, { type LimitFunction } from 'p-limit';
 import type { z } from 'zod';
 import { formatJsonSchemaError, formatZodError, isZodSchema, type SchemaTypeIndicators } from './defineRouteZod.js';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
 import { toHttpMethod, toRouteNextStyle, toRouteRemixStyle } from './routeConverter.js';
 import type { RouteHandler, RouteModule, RouteSchema } from './types.js';
+
+type TaskExecutor = () => Promise<TaskExecutor[]>;
+type JsonSchemaErrorEntry = { instancePath: string; message?: string };
+
+type RouteRegistrationProfileEntry = {
+  filePath: string;
+  method: string;
+  url: string;
+  importMs: number;
+  prepareMs: number;
+  registerMs: number;
+  totalMs: number;
+};
+
+type DirectoryScanProfileEntry = {
+  dirPath: string;
+  readdirMs: number;
+  entryCount: number;
+};
+
+type RouteRegistrationProfiling = {
+  enabled: boolean;
+  routes: RouteRegistrationProfileEntry[];
+  directories: DirectoryScanProfileEntry[];
+};
+
+export type RouteRegistrationRuntimeContext = {
+  maxConcurrentTasks: number;
+  taskLimit: LimitFunction;
+  profiling: RouteRegistrationProfiling;
+  getAjv: () => Promise<import('ajv').Ajv | undefined>;
+};
+
+export function createRouteRegistrationRuntimeContext(options?: {
+  maxConcurrentTasks?: number;
+  profiling?: {
+    enabled?: boolean;
+    logIndividualRoutes?: boolean;
+    slowestRoutesCount?: number;
+  };
+}): RouteRegistrationRuntimeContext {
+  const maxConcurrentTasks = options?.maxConcurrentTasks ?? 64;
+  let ajvPromise: Promise<import('ajv').Ajv | undefined> | undefined;
+
+  return {
+    maxConcurrentTasks,
+    taskLimit: pLimit(maxConcurrentTasks),
+    profiling: {
+      enabled: options?.profiling?.enabled ?? false,
+      routes: [],
+      directories: [],
+    },
+    getAjv: async () => {
+      if (ajvPromise) {
+        return ajvPromise;
+      }
+      ajvPromise = (async () => {
+        try {
+          const ajvModule = await import('ajv');
+          const AjvCtor = ajvModule.default as unknown as new (options?: {
+            allErrors?: boolean;
+            coerceTypes?: boolean | 'array';
+            useDefaults?: boolean;
+          }) => import('ajv').Ajv;
+          return new AjvCtor({ allErrors: true, coerceTypes: true, useDefaults: true });
+        } catch {
+          return;
+        }
+      })();
+      return ajvPromise;
+    },
+  };
+}
+
+async function executeTaskQueue(seedTasks: TaskExecutor[], limit: LimitFunction): Promise<void> {
+  const queue: TaskExecutor[] = [...seedTasks];
+  const inFlight = new Set<Promise<void>>();
+
+  const launch = (task: TaskExecutor): void => {
+    const runPromise = limit(async () => {
+      const followUpTasks = await task();
+      if (followUpTasks.length > 0) {
+        queue.push(...followUpTasks);
+      }
+    }).finally(() => {
+      inFlight.delete(runPromise);
+    });
+    inFlight.add(runPromise);
+  };
+
+  while (queue.length > 0 || inFlight.size > 0) {
+    while (queue.length > 0) {
+      const task = queue.shift();
+      if (task) {
+        launch(task);
+      }
+    }
+    if (inFlight.size > 0) {
+      await Promise.race(inFlight);
+    }
+  }
+}
 
 /**
  * Parses a filename into its components: route segments, method, and extension.
@@ -298,43 +401,60 @@ export async function registerRoutes(
   baseRootDir: string,
   logRoutes: boolean = false,
   zodResponseValidation: boolean = false,
+  runtimeContext?: RouteRegistrationRuntimeContext,
 ): Promise<void> {
-  const dirents = await fs.readdir(dir, { withFileTypes: true });
-  const baseSegments = dir
-    .replace(baseRootDir, '')
-    .split('/')
-    .filter(Boolean)
-    .filter((seg) => !isRouteGroupSegment(seg));
+  const context =
+    runtimeContext ??
+    createRouteRegistrationRuntimeContext({
+      maxConcurrentTasks: 64,
+      profiling: { enabled: false },
+    });
 
-  await Promise.all(
-    dirents.map(async (dirent: Dirent) => {
-      const fileName = dirent.name;
-      // Check if file should be excluded
-      const matchingExcludePattern = shouldExcludeFile(fileName, excludePatterns);
-      if (matchingExcludePattern) {
-        fastify.log[logLevel](
-          `Ignoring ${fileName} as it matches the exclude pattern ${matchingExcludePattern.source}`,
-        );
-        return;
+  const createDirectoryScanTask = (directoryPath: string): TaskExecutor => {
+    return async () => {
+      const readStart = performance.now();
+      const dirents = await fs.readdir(directoryPath, { withFileTypes: true });
+      const readdirMs = performance.now() - readStart;
+      if (context.profiling.enabled) {
+        context.profiling.directories.push({
+          dirPath: directoryPath,
+          readdirMs,
+          entryCount: dirents.length,
+        });
       }
 
-      const fullPath = path.join(dir, fileName);
+      const baseSegments = path
+        .relative(baseRootDir, directoryPath)
+        .split(path.sep)
+        .filter(Boolean)
+        .filter((seg) => !isRouteGroupSegment(seg));
 
-      if (dirent.isDirectory()) {
-        await registerRoutes(
-          fastify,
-          mount,
-          extensions,
-          convention,
-          logLevel,
-          excludePatterns,
-          fullPath,
-          baseRootDir,
-          logRoutes,
-          zodResponseValidation,
-        );
-        return;
+      const nextTasks: TaskExecutor[] = [];
+      for (const dirent of dirents) {
+        const fileName = dirent.name;
+        const matchingExcludePattern = shouldExcludeFile(fileName, excludePatterns);
+        if (matchingExcludePattern) {
+          fastify.log[logLevel](
+            `Ignoring ${fileName} as it matches the exclude pattern ${matchingExcludePattern.source}`,
+          );
+          continue;
+        }
+
+        const fullPath = path.join(directoryPath, fileName);
+        if (dirent.isDirectory()) {
+          nextTasks.push(createDirectoryScanTask(fullPath));
+          continue;
+        }
+        nextTasks.push(createRouteRegistrationTask(fullPath, fileName, baseSegments));
       }
+
+      return nextTasks;
+    };
+  };
+
+  const createRouteRegistrationTask = (fullPath: string, fileName: string, baseSegments: string[]): TaskExecutor => {
+    return async () => {
+      const routeStart = performance.now();
 
       // Parse filename
       const parsed = parseFileName(fileName, extensions, fullPath);
@@ -342,7 +462,7 @@ export async function registerRoutes(
         fastify.log[logLevel](
           `Ignoring file ${fullPath} as its extension, ${`.${fileName.split('.').pop()}`}, isn't in the list of extensions.`,
         );
-        return;
+        return [];
       }
 
       const { routeSegments, method } = parsed;
@@ -352,7 +472,9 @@ export async function registerRoutes(
       const routePath = convertRoutePath([...baseSegments, ...routeSegments], convention, fullPath);
 
       // Import and register the route
+      const importStart = performance.now();
       const handlerModule = (await import(fullPath)) as RouteModule;
+      const importMs = performance.now() - importStart;
       const url = buildUrl(routePath, mount);
 
       // Check if this is a defineRoute pattern (route export)
@@ -387,6 +509,8 @@ export async function registerRoutes(
           `Registering route ${typedMethod.toUpperCase()} ${url} ${schema ? '(with schema)' : ''} from ${fullPath}`,
         );
       }
+
+      const prepareStart = performance.now();
 
       // Check if this is a mixed schema route (has __zodSchemas or __schemaTypes property)
       const zodSchemas =
@@ -503,18 +627,29 @@ export async function registerRoutes(
 
       // Add preValidation hook for routes with Zod schemas or mixed schemas
       if (needsCustomValidation) {
-        // Create Ajv instance for JSON Schema validation (peer dependency).
-        let ajvInstance: import('ajv').Ajv | undefined;
-        try {
-          const ajvModule = await import('ajv');
-          const AjvCtor = ajvModule.default as unknown as new (options?: {
-            allErrors?: boolean;
-            coerceTypes?: boolean | 'array';
-            useDefaults?: boolean;
-          }) => import('ajv').Ajv;
-          ajvInstance = new AjvCtor({ allErrors: true, coerceTypes: true, useDefaults: true });
-        } catch {
-          ajvInstance = undefined;
+        const ajvInstance = await context.getAjv();
+        const types = (schemaTypes || {}) as SchemaTypeIndicators;
+
+        const jsonValidators: {
+          params?: ((value: unknown) => boolean) & { errors?: JsonSchemaErrorEntry[] | null };
+          querystring?: ((value: unknown) => boolean) & { errors?: JsonSchemaErrorEntry[] | null };
+          body?: ((value: unknown) => boolean) & { errors?: JsonSchemaErrorEntry[] | null };
+          headers?: ((value: unknown) => boolean) & { errors?: JsonSchemaErrorEntry[] | null };
+        } = {};
+
+        if (ajvInstance) {
+          if (types.params === 'json' && schema?.params) {
+            jsonValidators.params = ajvInstance.compile(schema.params) as typeof jsonValidators.params;
+          }
+          if (types.querystring === 'json' && schema?.querystring) {
+            jsonValidators.querystring = ajvInstance.compile(schema.querystring) as typeof jsonValidators.querystring;
+          }
+          if (types.body === 'json' && schema?.body) {
+            jsonValidators.body = ajvInstance.compile(schema.body) as typeof jsonValidators.body;
+          }
+          if (types.headers === 'json' && schema?.headers) {
+            jsonValidators.headers = ajvInstance.compile(schema.headers) as typeof jsonValidators.headers;
+          }
         }
 
         routeOptions.preValidation = async (request, reply) => {
@@ -525,7 +660,6 @@ export async function registerRoutes(
             body?: ZodTypeAny;
             headers?: ZodTypeAny;
           };
-          const types = (schemaTypes || {}) as SchemaTypeIndicators;
 
           // Validate params
           if (types.params === 'zod' && zodSchema.params) {
@@ -537,11 +671,10 @@ export async function registerRoutes(
             }
             // Replace request.params with validated data
             (request as { params: unknown }).params = paramsResult.data;
-          } else if (types.params === 'json' && schema?.params && ajvInstance) {
-            const validate = ajvInstance.compile(schema.params);
-            if (!validate(request.params)) {
+          } else if (types.params === 'json' && jsonValidators.params) {
+            if (!jsonValidators.params(request.params)) {
               return reply.status(400).send({
-                error: formatJsonSchemaError(validate.errors || [], 'params'),
+                error: formatJsonSchemaError(jsonValidators.params.errors || [], 'params'),
               });
             }
           }
@@ -556,7 +689,7 @@ export async function registerRoutes(
             }
             // Replace request.query with validated data
             (request as { query: unknown }).query = querystringResult.data;
-          } else if (types.querystring === 'json' && schema?.querystring && ajvInstance) {
+          } else if (types.querystring === 'json' && jsonValidators.querystring) {
             // Coerce querystring values (HTTP querystring params are always strings)
             // Convert 'true'/'false' strings to booleans, numbers to numbers, etc.
             const queryObj = request.query as Record<string, unknown>;
@@ -581,11 +714,10 @@ export async function registerRoutes(
                 coercedQuery[key] = value;
               }
             }
-            const validate = ajvInstance.compile(schema.querystring);
             // Validate the coerced query object
-            if (!validate(coercedQuery)) {
+            if (!jsonValidators.querystring(coercedQuery)) {
               return reply.status(400).send({
-                error: formatJsonSchemaError(validate.errors || [], 'querystring'),
+                error: formatJsonSchemaError(jsonValidators.querystring.errors || [], 'querystring'),
               });
             }
             // Update request.query with coerced values (Ajv may have further modified them)
@@ -602,11 +734,10 @@ export async function registerRoutes(
             }
             // Replace request.body with validated data
             (request as { body: unknown }).body = bodyResult.data;
-          } else if (types.body === 'json' && schema?.body && ajvInstance) {
-            const validate = ajvInstance.compile(schema.body);
-            if (!validate(request.body)) {
+          } else if (types.body === 'json' && jsonValidators.body) {
+            if (!jsonValidators.body(request.body)) {
               return reply.status(400).send({
-                error: formatJsonSchemaError(validate.errors || [], 'body'),
+                error: formatJsonSchemaError(jsonValidators.body.errors || [], 'body'),
               });
             }
           }
@@ -621,11 +752,10 @@ export async function registerRoutes(
             }
             // Replace request.headers with validated data
             (request as { headers: unknown }).headers = headersResult.data;
-          } else if (types.headers === 'json' && schema?.headers && ajvInstance) {
-            const validate = ajvInstance.compile(schema.headers);
-            if (!validate(request.headers)) {
+          } else if (types.headers === 'json' && jsonValidators.headers) {
+            if (!jsonValidators.headers(request.headers)) {
               return reply.status(400).send({
-                error: formatJsonSchemaError(validate.errors || [], 'headers'),
+                error: formatJsonSchemaError(jsonValidators.headers.errors || [], 'headers'),
               });
             }
           }
@@ -690,7 +820,27 @@ export async function registerRoutes(
         }
       }
 
+      const prepareMs = performance.now() - prepareStart;
+      const registerStart = performance.now();
       fastify.route(routeOptions);
-    }),
-  );
+      const registerMs = performance.now() - registerStart;
+      const totalMs = performance.now() - routeStart;
+
+      if (context.profiling.enabled) {
+        context.profiling.routes.push({
+          filePath: fullPath,
+          method: typedMethod,
+          url,
+          importMs,
+          prepareMs,
+          registerMs,
+          totalMs,
+        });
+      }
+
+      return [];
+    };
+  };
+
+  await executeTaskQueue([createDirectoryScanTask(dir)], context.taskLimit);
 }

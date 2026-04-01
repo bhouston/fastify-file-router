@@ -2,6 +2,24 @@ import type { LogLevel } from 'fastify';
 
 export type FileRouteConvention = 'remix' | 'next';
 
+export type FastifyFileRouterProfileOptions = {
+  /**
+   * Enable startup profiling logs for route discovery and registration.
+   * @default false
+   */
+  enabled?: boolean;
+  /**
+   * Log each route file timing in addition to the startup summary.
+   * @default false
+   */
+  logIndividualRoutes?: boolean;
+  /**
+   * Number of slowest route files to print in the summary.
+   * @default 10
+   */
+  slowestRoutesCount?: number;
+};
+
 export type FastifyFileRouterOptions = {
   /**
    * Where the routes should be mounted on the server.
@@ -51,4 +69,14 @@ export type FastifyFileRouterOptions = {
    * Exclusion patterns for files to ignore.
    */
   exclude?: RegExp[];
+  /**
+   * Max number of route loading tasks that may run concurrently.
+   * Higher values can increase startup throughput but may spike CPU and I/O.
+   * @default 4
+   */
+  maxConcurrentTasks?: number;
+  /**
+   * Startup profiling options for route discovery/import/registration.
+   */
+  profile?: FastifyFileRouterProfileOptions;
 };

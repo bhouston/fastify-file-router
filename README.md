@@ -382,11 +382,60 @@ This plugin supports the following customizable options.
 - Output the routes being registered and from which files.
 - Default: `false`
 
+**maxConcurrentTasks**
+
+- Maximum number of route-loading tasks that may run concurrently.
+- A task can be either scanning a directory or importing/registering a route file.
+- Lower values can reduce startup CPU/I/O spikes; higher values can improve throughput on larger projects.
+- Default: `64`
+
+**profile**
+
+- Optional startup profiling logs for route loading performance.
+- Default: disabled
+
+`profile.enabled`
+
+- Enables startup profiling logs.
+- Logs include total plugin startup timing and a slow-route summary.
+- Default: `false`
+
+`profile.logIndividualRoutes`
+
+- Logs timing for every route file (in addition to the summary).
+- Useful for identifying expensive route module initialization.
+- Default: `false`
+
+`profile.slowestRoutesCount`
+
+- Number of slowest route files included in the startup summary.
+- Default: `10`
+
 **zodResponseValidation**
 
 - Whether to enable validation of Zod response schemas. When enabled, responses defined with Zod schemas in `defineRouteZod` will be validated against their schemas. If validation fails, a 500 error is returned.
 - Note: This only validates Zod response schemas. For JSON Schema response validation, register the `@fastify/response-validation` plugin separately.
 - Default: `false`
+
+### Profiling example
+
+```ts
+fastify.register(fastifyFileRouter, {
+  maxConcurrentTasks: 32,
+  profile: {
+    enabled: true,
+    slowestRoutesCount: 15,
+    logIndividualRoutes: false,
+  },
+});
+```
+
+Example profile logs:
+
+```txt
+[fastify-file-router profile] loaded 218 routes from 47 directories in 624.11ms (import 412.32ms, prepare 178.09ms, register 8.47ms)
+[fastify-file-router profile] slow route GET /api/reporting/monthly total=83.21ms import=79.58ms prepare=3.44ms register=0.03ms file=/app/routes/api/reporting/monthly.get.ts
+```
 
 ## Development
 

@@ -2,9 +2,10 @@ import type { FastifySchema } from 'fastify';
 import { describe, expect, test } from 'vitest';
 import { defineRoute } from './defineRoute.js';
 
+const stableHandler = async () => ({});
+
 describe('defineRoute', () => {
   test('returns route with schema and handler', () => {
-    const handler = async () => ({});
     const schema: FastifySchema = {
       params: {
         type: 'object',
@@ -17,11 +18,11 @@ describe('defineRoute', () => {
 
     const route = defineRoute({
       schema,
-      handler,
+      handler: stableHandler,
     });
 
     expect(route.schema).toBe(schema);
-    expect(route.handler).toBe(handler);
+    expect(route.handler).toBe(stableHandler);
   });
 
   test('handles route with params schema', () => {

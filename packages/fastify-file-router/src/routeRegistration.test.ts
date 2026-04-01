@@ -7,6 +7,7 @@ import { z } from 'zod';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
 import {
   buildUrl,
+  createRouteRegistrationRuntimeContext,
   convertRoutePath,
   extractJsonSchemaParams,
   extractRouteParams,
@@ -2017,6 +2018,69 @@ export const route = defineRouteZod({
       await app.close();
     } finally {
       await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('routeRegistration - task queue runtime context', () => {
+  test('collects profile data when runtime profiling is enabled', async () => {
+    const app = Fastify({ logger: false });
+    const tempDir = path.join(__dirname, 'temp-test-task-queue-profile');
+    const nestedDir = path.join(tempDir, 'api');
+
+    try {
+      await fs.mkdir(nestedDir, { recursive: true });
+      await fs.writeFile(
+        path.join(nestedDir, 'health.get.ts'),
+        `export default async function handler(_request, reply) {
+  reply.send({ ok: true });
+}\n`,
+        'utf-8',
+      );
+
+      const runtimeContext = createRouteRegistrationRuntimeContext({
+        maxConcurrentTasks: 2,
+        profiling: { enabled: true },
+      });
+
+      await registerRoutes(
+        app,
+        '/',
+        ['.ts'],
+        'remix',
+        'info',
+        [/\.test\.ts$/],
+        tempDir,
+        tempDir,
+        false,
+        false,
+        runtimeContext,
+      );
+
+      expect(runtimeContext.profiling.directories.length).toBeGreaterThan(0);
+      expect(runtimeContext.profiling.routes.length).toBe(1);
+      expect(runtimeContext.profiling.routes[0]?.url).toBe('/api/health');
+      expect(runtimeContext.profiling.routes[0]?.totalMs).toBeGreaterThanOrEqual(0);
+
+      await app.close();
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('reuses a single Ajv instance in runtime context', async () => {
+    const runtimeContext = createRouteRegistrationRuntimeContext({
+      profiling: { enabled: false },
+    });
+
+    const ajvOne = await runtimeContext.getAjv();
+    const ajvTwo = await runtimeContext.getAjv();
+
+    if (ajvOne && ajvTwo) {
+      expect(ajvOne).toBe(ajvTwo);
+    } else {
+      expect(ajvOne).toBeUndefined();
+      expect(ajvTwo).toBeUndefined();
     }
   });
 });
