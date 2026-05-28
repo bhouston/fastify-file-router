@@ -1,9 +1,10 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
     watch: false,
     isolate: false,
+    exclude: [...configDefaults.exclude, '**/dist/**', '**/publish/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
