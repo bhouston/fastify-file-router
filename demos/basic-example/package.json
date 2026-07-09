@@ -2,10 +2,10 @@
   "name": "basic-example",
   "type": "module",
   "scripts": {
-    "build": "tsgo",
+    "build": "tsc",
     "dev": "node --watch --watch-preserve-output src/server.ts",
     "start": "node src/server.ts",
-    "tsgo": "tsgo --noEmit"
+    "tsc": "tsc --noEmit"
   },
   "dependencies": {
     "@fastify/response-validation": "^3.0.0",
