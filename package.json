@@ -33,6 +33,7 @@
     "glob": "^13.0.6",
     "husky": "^9.1.7",
     "jsonfile": "^6.2.1",
+    "lint-staged": "^17.3.0",
     "oxfmt": "^0.58.0",
     "oxlint": "^1.83.0",
     "prompt-confirm": "^2.0.4",
@@ -43,6 +44,13 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vitest": "^4.1.11"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "oxfmt",
+      "oxlint --fix"
+    ],
+    "*.{json,jsonc,md,mdx,css,html,yml,yaml}": "oxfmt"
   },
   "size-limit": [
     {
