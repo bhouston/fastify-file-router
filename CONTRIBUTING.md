@@ -49,7 +49,7 @@ Audit includes development dependencies and fails on high/critical vulnerabiliti
 
 `.github/workflows/release.yml` runs on pushes to `main`, after repeating the quality checks. semantic-release computes the version from commits since the previous `v*` tag, generates `CHANGELOG.md`, updates the library package version, creates the tag and GitHub release, and publishes `fastify-file-router` through npm OIDC. The root package is private and the demo is not published.
 
-Generated changelog and version changes are committed by the release bot with `[skip ci]`. Do not edit versions or release changelog entries manually. The npm package includes the generated changelog, README, MIT license, JavaScript, and declarations, excluding compiled tests. The old manual publishing script has been removed.
+Generated changelog and version changes are committed by the release bot. Do not include `[skip ci]` in the release commit: it would suppress the required checks on the subsequent synchronization PR. Pushes authenticated with `GITHUB_TOKEN` do not recursively trigger push workflows. Do not edit versions or release changelog entries manually. The npm package includes the generated changelog, README, MIT license, JavaScript, and declarations, excluding compiled tests. The old manual publishing script has been removed.
 
 The migration baseline is `v3.1.0` at `ebab6ea116135877f88f411668b6147d6a24e2aa`, verified against npm's `gitHead`. Do not move this tag or tag unreleased work as a published version.
 
