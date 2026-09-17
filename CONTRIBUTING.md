@@ -5,13 +5,12 @@ These instructions apply equally to humans, Claude, and Codex. This file is the 
 ## Issue → branch → pull request
 
 1. Before starting a feature or fix, create a GitHub issue (or reuse the issue supplied by the requester). Use the feature or bug template: describe the problem, motivation, constraints, and acceptance criteria. Agents should use `gh issue create --body-file` with those same sections.
-2. Branch from current `dev`: `feature/42-short-description`, `fix/42-short-description`, or `chore/42-short-description`. The number must identify the issue. `docs`, `refactor`, and `test` prefixes also work. Keep unrelated local changes separate, using a worktree when useful.
-3. Implement the change and run the checks below. Every new commit must follow Conventional Commits. Reference the issue in the body where useful. Never commit contributor changes directly to `main` or `dev`.
-4. Open a PR against `dev`, using a Conventional Commit title and `Closes #42` in its body. Describe the result and validation. PR policy checks the issue exists and is open, branch name, title, and new commits. Fix failed checks before merging. Feature PRs may be squash-merged; retain breaking-change footers in the squash message.
-5. Release deliberately with a PR from this repository's `dev` to `main`. Use a title such as `chore(release): promote dev to main`. **Merge with a merge commit, never squash or rebase this promotion**: semantic-release must see the original feature and fix commits. Ordinary merges into `dev` do not publish.
-6. After a release, open a `main` → `dev` synchronization PR and merge it with a merge commit, preserving release tags and generated files. This PR is exempt from the issue/branch checks. Do this before the next promotion.
+2. Branch from current `main`: `feature/42-short-description`, `fix/42-short-description`, or `chore/42-short-description`. The number must identify the issue. `docs`, `refactor`, and `test` prefixes also work. Keep unrelated local changes separate, using a worktree when useful.
+3. Implement the change and run the checks below. Every new commit must follow Conventional Commits. Reference the issue in the body where useful. Never commit contributor changes directly to `main`.
+4. Open a PR against `main`, using a Conventional Commit title and `Closes #42` in its body. Describe the result and validation. PR policy checks the issue exists and is open, branch name, title, and new commits. Fix failed checks before merging. Feature PRs may be squash-merged; retain breaking-change footers in the squash message.
+5. Merging a PR into `main` never publishes by itself. Release deliberately by dispatching the `Release` workflow on `main` (see Automated releases below) whenever you want the accumulated changes published.
 
-`dev` should be the GitHub default branch so feature PRs close linked issues when merged. The contribution policy rejects other branches targeting `main`. Only the release bot may commit generated version/changelog changes directly to `main`.
+`main` is the GitHub default branch and the only active integration branch. The contribution policy rejects PRs targeting any other branch.
 
 ## Commit format
 
@@ -47,22 +46,24 @@ Audit includes development dependencies and fails on high/critical vulnerabiliti
 
 ## Automated releases
 
-`.github/workflows/release.yml` runs on pushes to `main`, after repeating the quality checks. semantic-release computes the version from commits since the previous `v*` tag, generates `CHANGELOG.md`, updates the library package version, creates the tag and GitHub release, and publishes `fastify-file-router` through npm OIDC. The root package is private and the demo is not published.
+`.github/workflows/release.yml` is triggered manually, never on push: `gh workflow run release.yml --ref main`. It rejects dispatches against any ref other than `main`, repeats the quality checks against the exact dispatched commit, and aborts if `main` has advanced past that commit before the release step runs. semantic-release then computes the version from commits since the previous `v*` tag, generates the changelog and release notes, creates the tag and GitHub release, and publishes `fastify-file-router` through npm OIDC. The root package is private and the demo is not published.
 
-Generated changelog and version changes are committed by the release bot. Do not include `[skip ci]` in the release commit: it would suppress the required checks on the subsequent synchronization PR. Pushes authenticated with `GITHUB_TOKEN` do not recursively trigger push workflows. Do not edit versions or release changelog entries manually. The npm package includes the generated changelog, README, MIT license, JavaScript, and declarations, excluding compiled tests. The old manual publishing script has been removed.
+semantic-release no longer commits a version/changelog update back to `main`; `main` is protected and there is no bypass for generated commits. The GitHub Release for each tag is the changelog of record. Do not edit versions manually or hand-push tags. The npm package includes the generated changelog, README, MIT license, JavaScript, and declarations, excluding compiled tests.
+
+Use the workflow's `dry_run` input to verify version/changelog computation without publishing. When there are no release-worthy commits since the last tag, the workflow succeeds as a no-op and says so in the run summary.
 
 The migration baseline is `v3.1.0` at `ebab6ea116135877f88f411668b6147d6a24e2aa`, verified against npm's `gitHead`. Do not move this tag or tag unreleased work as a published version.
 
 ## One-time maintainer setup
 
-1. Set the GitHub default branch to `dev`. Require `Quality checks` and `Contribution policy` on contributor PRs to `dev`. Keep merge commits enabled for release and synchronization PRs. If you enforce protections on `main`, permit the release bot's generated commits and tags; a blanket required-PR rule on `main` prevents `@semantic-release/git` from working with `GITHUB_TOKEN`.
+1. Set the GitHub default branch to `main`. Require `Quality checks` and `Contribution policy` on contributor PRs to `main`.
 2. In the npm package settings for **fastify-file-router**, add a GitHub Actions trusted publisher with these exact values:
    - Organization or user: `bhouston`
    - Repository: `fastify-file-router`
    - Workflow filename: `release.yml` (not its directory path)
    - Environment name: leave blank (the release job does not use an environment)
 3. After saving the npm settings, enable publishing with `gh variable set NPM_TRUSTED_PUBLISHING_ENABLED --body true`. Until then the release jobs are skipped. Do not add `NPM_TOKEN` or `NODE_AUTH_TOKEN`; authentication uses `id-token: write`. The pinned Node version supplies a recent npm, and semantic-release's npm plugin includes its compatible npm CLI.
-4. Merge the implementation into `dev`, then promote `dev` to `main` with a merge commit when ready for a release. Review the Actions run, generated release notes, package contents, and npm provenance. Local dry runs cannot prove GitHub-to-npm OIDC authentication; the first real CI release verifies it.
+4. Merge feature PRs into `main` as they land. When ready to publish, dispatch `Release` on `main`. Review the Actions run, generated release notes, package contents, and npm provenance. Local dry runs cannot prove GitHub-to-npm OIDC authentication; the first real CI release verifies it.
 
 See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) and [semantic-release on GitHub Actions](https://semantic-release.gitbook.io/semantic-release/recipes/ci-configurations/github-actions).
 

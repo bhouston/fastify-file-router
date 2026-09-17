@@ -7,13 +7,6 @@ module.exports = {
     ['@semantic-release/changelog', { changelogFile: 'CHANGELOG.md' }],
     './scripts/release-assets.mjs',
     ['@semantic-release/npm', { pkgRoot: 'packages/fastify-file-router' }],
-    [
-      '@semantic-release/git',
-      {
-        assets: ['CHANGELOG.md', 'packages/fastify-file-router/package.json'],
-        message: 'chore(release): ${nextRelease.version}\n\n${nextRelease.notes}',
-      },
-    ],
     ['@semantic-release/github', { successComment: false, failComment: false, releasedLabels: false }],
   ],
 };

@@ -11,8 +11,10 @@ const { analyzeCommits } = await import(pathToFileURL(releaseRequire.resolve('@s
 const { generateNotes } = await import(
   pathToFileURL(releaseRequire.resolve('@semantic-release/release-notes-generator'))
 );
-const gitPlugin = config.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === '@semantic-release/git');
-assert(!/\[skip ci\]|\[ci skip\]/i.test(gitPlugin[1].message), 'Release commits must allow synchronization PR checks.');
+assert(
+  !config.plugins.some((plugin) => (Array.isArray(plugin) ? plugin[0] : plugin) === '@semantic-release/git'),
+  'main is protected and release commits are not pushed back to it; do not reintroduce @semantic-release/git.',
+);
 const context = {
   cwd: process.cwd(),
   logger: { log() {} },

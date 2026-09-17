@@ -2,7 +2,7 @@ name: PR policy
 
 on:
   pull_request:
-    branches: [dev, main]
+    branches: [main]
     types: [opened, edited, synchronize, reopened, ready_for_review]
 
 permissions:
@@ -28,7 +28,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Lint feature commits
-        if: github.base_ref == 'dev' && github.head_ref != 'main'
         run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
