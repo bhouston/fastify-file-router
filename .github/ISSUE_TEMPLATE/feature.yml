@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a feature before implementation
+title: 'feat: '
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What should change and why?
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Compatibility, API, performance, or scope constraints.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable outcomes as checkboxes.
+    validations:
+      required: true
