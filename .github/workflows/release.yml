@@ -1,8 +1,12 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run semantic-release without publishing (verification only)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -12,13 +16,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject dispatches targeting anything other than main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Release may only be dispatched on main, got ${{ github.ref }}." | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1
   validate:
+    needs: guard
     if: vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true'
     uses: ./.github/workflows/ci.yml
     secrets: inherit
   release:
-    if: vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true'
     needs: validate
+    if: vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,7 +39,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
+      - name: Verify main has not advanced since dispatch
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/main; then
+            echo "main has moved past the dispatched commit; re-run the dispatch." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
@@ -34,8 +55,19 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - name: Publish release with npm trusted publishing
-        run: pnpm release
+      - name: Run semantic-release
+        run: pnpm release ${{ inputs.dry_run && '--dry-run' || '' }} | tee release-output.log
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: '0'
+      - name: Summarize release outcome
+        if: always()
+        run: |
+          if grep -qi 'no relevant changes' release-output.log; then
+            echo "### No release-worthy commits since the last release; nothing published." >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Release run completed"
+              grep -E 'Published release|Publishing version' release-output.log || true
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
