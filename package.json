@@ -18,7 +18,8 @@
     "size": "size-limit",
     "release:prepare": "node scripts/prepare-release.mjs",
     "release": "semantic-release",
-    "commitlint": "commitlint"
+    "commitlint": "commitlint",
+    "release:check": "node scripts/check-release.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
@@ -29,7 +30,7 @@
     "@types/node": "^24.13.5",
     "@vitest/coverage-v8": "^4.1.11",
     "chalk": "^5.6.2",
-    "conventional-changelog-conventionalcommits": "^10.4.0",
+    "conventional-changelog-conventionalcommits": "^9.3.1",
     "glob": "^13.0.6",
     "husky": "^9.1.7",
     "jsonfile": "^6.2.1",

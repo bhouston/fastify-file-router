@@ -25,6 +25,7 @@ jobs:
       - run: pnpm build
       - run: pnpm tsc
       - run: pnpm lint
+      - run: pnpm release:check
       - run: pnpm test:coverage
       - name: Audit dependencies
         run: pnpm audit --audit-level high

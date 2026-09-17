@@ -33,6 +33,7 @@ pnpm install --frozen-lockfile
 pnpm build
 pnpm tsc
 pnpm lint
+pnpm release:check
 pnpm test:coverage
 pnpm audit --audit-level high
 pnpm size
