@@ -9,7 +9,7 @@ This Fastify plugin is inspired by the file based routers in Next.js and Remix.
 
 This allows you to specify all of your server routes using either filenames or a combination of filenames and nested directories.
 
-Supports both JavaScript and TypeScript (on Node 22+.)
+Supports both JavaScript and TypeScript (on Node 24+.)
 
 ## Installation
 
@@ -458,7 +458,11 @@ pnpm test # vitest
 [npm-url]: https://www.npmjs.com/package/fastify-file-router
 [npm-downloads]: https://img.shields.io/npm/dw/fastify-file-router
 [npmtrends-url]: https://www.npmtrends.com/fastify-file-router
-[tests-badge]: https://github.com/bhouston/fastify-file-router/workflows/Tests/badge.svg
-[tests-url]: https://github.com/bhouston/fastify-file-router/actions/workflows/test.yml
+[tests-badge]: https://github.com/bhouston/fastify-file-router/actions/workflows/ci.yml/badge.svg
+[tests-url]: https://github.com/bhouston/fastify-file-router/actions/workflows/ci.yml
 [coverage-badge]: https://codecov.io/gh/bhouston/fastify-file-router/branch/main/graph/badge.svg
 [coverage-url]: https://codecov.io/gh/bhouston/fastify-file-router
+
+## Contributing and releases
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the issue → branch → PR workflow and release setup, [CHANGELOG.md](CHANGELOG.md) for changes, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
