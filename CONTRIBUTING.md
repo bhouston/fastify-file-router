@@ -62,7 +62,7 @@ The migration baseline is `v3.1.0` at `ebab6ea116135877f88f411668b6147d6a24e2aa`
    - Repository: `fastify-file-router`
    - Workflow filename: `release.yml` (not its directory path)
    - Environment name: leave blank (the release job does not use an environment)
-3. After saving the npm settings, enable publishing with `gh variable set NPM_TRUSTED_PUBLISHING_ENABLED --body true`. Until then the release jobs are skipped. Do not add `NPM_TOKEN` or `NODE_AUTH_TOKEN`; authentication uses `id-token: write`. Publishing runs through `pnpm publish` via `@anolilab/semantic-release-pnpm`, using the pnpm version pinned in `packageManager`.
+3. Do not add `NPM_TOKEN` or `NODE_AUTH_TOKEN`; authentication uses `id-token: write`. Publishing runs through `pnpm publish` via `@anolilab/semantic-release-pnpm`, using the pnpm version pinned in `packageManager`.
 4. Merge feature PRs into `main` as they land. When ready to publish, dispatch `Release` on `main`. Review the Actions run, generated release notes, package contents, and npm provenance. Local dry runs cannot prove GitHub-to-npm OIDC authentication; the first real CI release verifies it.
 
 See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) and [semantic-release on GitHub Actions](https://semantic-release.gitbook.io/semantic-release/recipes/ci-configurations/github-actions).
