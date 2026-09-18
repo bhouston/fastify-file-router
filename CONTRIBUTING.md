@@ -5,9 +5,9 @@ These instructions apply equally to humans, Claude, and Codex. This file is the 
 ## Issue → branch → pull request
 
 1. Before starting a feature or fix, create a GitHub issue (or reuse the issue supplied by the requester). Use the feature or bug template: describe the problem, motivation, constraints, and acceptance criteria. Agents should use `gh issue create --body-file` with those same sections.
-2. Branch from current `main`: `feature/42-short-description`, `fix/42-short-description`, or `chore/42-short-description`. The number must identify the issue. `docs`, `refactor`, and `test` prefixes also work. Keep unrelated local changes separate, using a worktree when useful.
+2. Branch from current `main`. Branch names are not restricted to any naming convention. Keep unrelated local changes separate, using a worktree when useful.
 3. Implement the change and run the checks below. Every new commit must follow Conventional Commits. Reference the issue in the body where useful. Never commit contributor changes directly to `main`.
-4. Open a PR against `main`, using a Conventional Commit title and `Closes #42` in its body. Describe the result and validation. PR policy checks the issue exists and is open, branch name, title, and new commits. Fix failed checks before merging. PRs are merged with merge commits; do not squash.
+4. Open a PR against `main`, using a Conventional Commit title and `Closes #42` in its body. Describe the result and validation. PR policy checks the issue exists and is open, title, and new commits. Fix failed checks before merging. PRs are merged with merge commits; do not squash.
 5. Merging a PR into `main` never publishes by itself. Release deliberately by dispatching the `Release` workflow on `main` (see Automated releases below) whenever you want the accumulated changes published.
 
 `main` is the GitHub default branch and the only active integration branch. The contribution policy rejects PRs targeting any other branch.
