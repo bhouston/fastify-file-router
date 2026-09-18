@@ -3,6 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["src"],
-  "references": [{ "path": "../../packages/fastify-file-router" }]
+  "include": ["src"]
 }
