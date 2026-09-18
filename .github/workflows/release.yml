@@ -26,12 +26,10 @@ jobs:
           exit 1
   validate:
     needs: guard
-    if: vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true'
     uses: ./.github/workflows/ci.yml
     secrets: inherit
   release:
     needs: validate
-    if: vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
