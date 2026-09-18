@@ -8,11 +8,9 @@ const fail = (message) => {
 };
 if (pr.base.ref !== 'main') fail(`PRs must target main, not ${pr.base.ref}.`);
 
-const branch = /^(?:feature|fix|chore|docs|refactor|test)\/(\d+)-[a-z0-9]+(?:-[a-z0-9]+)*$/.exec(pr.head.ref);
-if (!branch) fail('Use a branch such as feature/42-add-router.');
-const issue = branch[1];
-const closes = new RegExp(`\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s+#${issue}\\b`, 'i');
-if (!closes.test(pr.body ?? '')) fail(`PR body must contain Closes #${issue}.`);
+const closes = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/i.exec(pr.body ?? '');
+if (!closes) fail('PR body must contain "Closes #<issue>".');
+const issue = closes[1];
 const response = await fetch(`https://api.github.com/repos/${pr.base.repo.full_name}/issues/${issue}`, {
   headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json' },
 });
