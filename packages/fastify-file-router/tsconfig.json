@@ -1,8 +1,4 @@
 {
   "extends": "../../tsconfig.node.json",
-  "compilerOptions": {
-    "composite": true
-  },
-  "include": ["src"],
-  "references": []
+  "include": ["src"]
 }

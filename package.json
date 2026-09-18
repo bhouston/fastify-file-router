@@ -11,7 +11,7 @@
     "format": "oxfmt .",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "tsc": "tsc -b",
+    "tsc": "pnpm -r tsc",
     "test": "vitest run",
     "cloc": "npx cloc * --exclude-dir=node_modules,dist,.nx,.next,build",
     "test:coverage": "pnpm test --coverage",
