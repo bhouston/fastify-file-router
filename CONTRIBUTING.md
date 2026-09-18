@@ -46,9 +46,9 @@ Audit includes development dependencies and fails on high/critical vulnerabiliti
 
 ## Automated releases
 
-`.github/workflows/release.yml` is triggered manually, never on push: `gh workflow run release.yml --ref main`. It rejects dispatches against any ref other than `main`, repeats the quality checks against the exact dispatched commit, and aborts if `main` has advanced past that commit before the release step runs. semantic-release then computes the version from commits since the previous `v*` tag, generates the changelog and release notes, creates the tag and GitHub release, and publishes `fastify-file-router` through npm OIDC. The root package is private and the demo is not published.
+`.github/workflows/release.yml` is triggered manually, never on push: `gh workflow run release.yml --ref main`. It rejects dispatches against any ref other than `main`, repeats the quality checks against the exact dispatched commit, and aborts if `main` has advanced past that commit before the release step runs. semantic-release then computes the version from commits since the previous `v*` tag, generates the changelog and release notes, creates the tag and GitHub release, and publishes `fastify-file-router` through npm OIDC via `pnpm publish` (`@anolilab/semantic-release-pnpm`). The root package is private and the demo is not published.
 
-semantic-release no longer commits a version/changelog update back to `main`; `main` is protected and there is no bypass for generated commits. The GitHub Release for each tag is the changelog of record. Do not edit versions manually or hand-push tags. The npm package includes the generated changelog, README, MIT license, JavaScript, and declarations, excluding compiled tests.
+semantic-release no longer commits a version/changelog update back to `main`; `main` is protected and there is no bypass for generated commits. The GitHub Release for each tag is the changelog of record. Do not edit versions manually or hand-push tags. The npm package includes the generated changelog, the hand-maintained package README, MIT license, JavaScript, and declarations, excluding compiled tests. The package README lives at `packages/fastify-file-router/README.md` and is the canonical documentation; the root README is a short landing page that links to it.
 
 Use the workflow's `dry_run` input to verify version/changelog computation without publishing. When there are no release-worthy commits since the last tag, the workflow succeeds as a no-op and says so in the run summary.
 
@@ -62,7 +62,7 @@ The migration baseline is `v3.1.0` at `ebab6ea116135877f88f411668b6147d6a24e2aa`
    - Repository: `fastify-file-router`
    - Workflow filename: `release.yml` (not its directory path)
    - Environment name: leave blank (the release job does not use an environment)
-3. After saving the npm settings, enable publishing with `gh variable set NPM_TRUSTED_PUBLISHING_ENABLED --body true`. Until then the release jobs are skipped. Do not add `NPM_TOKEN` or `NODE_AUTH_TOKEN`; authentication uses `id-token: write`. The pinned Node version supplies a recent npm, and semantic-release's npm plugin includes its compatible npm CLI.
+3. After saving the npm settings, enable publishing with `gh variable set NPM_TRUSTED_PUBLISHING_ENABLED --body true`. Until then the release jobs are skipped. Do not add `NPM_TOKEN` or `NODE_AUTH_TOKEN`; authentication uses `id-token: write`. Publishing runs through `pnpm publish` via `@anolilab/semantic-release-pnpm`, using the pnpm version pinned in `packageManager`.
 4. Merge feature PRs into `main` as they land. When ready to publish, dispatch `Release` on `main`. Review the Actions run, generated release notes, package contents, and npm provenance. Local dry runs cannot prove GitHub-to-npm OIDC authentication; the first real CI release verifies it.
 
 See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) and [semantic-release on GitHub Actions](https://semantic-release.gitbook.io/semantic-release/recipes/ci-configurations/github-actions).

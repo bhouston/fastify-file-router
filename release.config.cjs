@@ -6,7 +6,7 @@ module.exports = {
     ['@semantic-release/release-notes-generator', { preset: 'conventionalcommits' }],
     ['@semantic-release/changelog', { changelogFile: 'CHANGELOG.md' }],
     './scripts/release-assets.mjs',
-    ['@semantic-release/npm', { pkgRoot: 'packages/fastify-file-router' }],
+    ['@anolilab/semantic-release-pnpm', { pkgRoot: 'packages/fastify-file-router' }],
     ['@semantic-release/github', { successComment: false, failComment: false, releasedLabels: false }],
   ],
 };
