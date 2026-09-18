@@ -56,7 +56,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: Run semantic-release
-        run: pnpm release ${{ inputs.dry_run && '--dry-run' || '' }} | tee release-output.log
+        run: |
+          set -o pipefail
+          pnpm release ${{ inputs.dry_run && '--dry-run' || '' }} | tee release-output.log
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: '0'
