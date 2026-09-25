@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
@@ -7,11 +8,14 @@
   "plugins": ["eslint", "typescript", "oxc", "unicorn", "react", "jsx-a11y"],
   "rules": {
     "eslint/no-underscore-dangle": "off",
-    "react/react-in-jsx-scope": "off"
+    "eslint/no-unused-private-class-members": "error",
+    "react/react-in-jsx-scope": "off",
+    "typescript/no-explicit-any": "error",
+    "unicorn/no-new-array": "error"
   },
   "overrides": [
     {
-      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/test/**", "**/tests/**"],
       "plugins": ["eslint", "typescript", "oxc", "unicorn", "react", "jsx-a11y", "vitest"]
     }
   ]
