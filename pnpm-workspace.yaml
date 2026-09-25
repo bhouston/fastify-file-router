@@ -6,3 +6,7 @@ allowBuilds:
   esbuild: true
 
 link-workspace-packages: true
+
+minimumReleaseAgeExclude:
+  - '@vitest/*'
+  - vitest
