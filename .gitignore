@@ -4,6 +4,5 @@ dist
 .nx
 coverage
 packages/fastify-file-router/LICENSE
-packages/fastify-file-router/CHANGELOG.md
 *.tgz
 *.tsbuildinfo

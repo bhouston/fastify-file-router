@@ -467,4 +467,4 @@ pnpm test # vitest
 
 ## Contributing and releases
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the issue → branch → PR workflow and release setup, [CHANGELOG.md](CHANGELOG.md) for changes, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the issue → branch → PR workflow and release setup, [GitHub Releases](https://github.com/bhouston/fastify-file-router/releases) for changes, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.

@@ -31,8 +31,7 @@
     "!dist/**/test/**",
     "!dist/**/tests/**",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "main": "dist/index.js",
