@@ -1,4 +1,4 @@
-name: PR policy
+name: pr-policy
 
 on:
   pull_request:
@@ -7,28 +7,33 @@ on:
 
 permissions:
   contents: read
-  issues: read
+
+concurrency:
+  group: pr-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  policy:
-    name: Contribution policy
+  contribution:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Validate PR title and issue/branch policy
-        run: node scripts/check-pr-policy.mjs
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Validate target branch and linked issue
+        run: node scripts/check-pr.mjs
+      - name: Lint PR title
         env:
-          GH_TOKEN: ${{ github.token }}
-      - name: Lint feature commits
-        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint
+      - name: Lint PR commits
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA"

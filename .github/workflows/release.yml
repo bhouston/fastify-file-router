@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Run semantic-release without publishing (verification only)'
+        description: 'Validate and preview the release without publishing'
         type: boolean
         default: false
 
@@ -12,38 +12,46 @@ permissions:
   contents: read
 
 concurrency:
-  group: npm-release
+  group: release
   cancel-in-progress: false
 
 jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
-      - name: Reject dispatches targeting anything other than main
+      - name: Require dispatch against main
         if: github.ref != 'refs/heads/main'
         run: |
-          echo "Release may only be dispatched on main, got ${{ github.ref }}." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "::error::Release must be dispatched with ref=main (got ${{ github.ref }})."
           exit 1
-  validate:
+
+  checks:
     needs: guard
     uses: ./.github/workflows/ci.yml
     secrets: inherit
+
   release:
-    needs: validate
+    needs: [guard, checks]
     runs-on: ubuntu-latest
+    environment: npm
     permissions:
       contents: write
       id-token: write
+    env:
+      HUSKY: '0'
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Verify main has not advanced since dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git fetch origin main
-          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/main; then
-            echo "main has moved past the dispatched commit; re-run the dispatch." | tee -a "$GITHUB_STEP_SUMMARY"
+          head="$(gh api "repos/${{ github.repository }}/git/ref/heads/main" --jq .object.sha)"
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::error::main moved from $GITHUB_SHA to $head after dispatch; dispatch the release again."
             exit 1
           fi
       - uses: pnpm/action-setup@v5
@@ -53,21 +61,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - name: Run semantic-release
-        run: |
-          set -o pipefail
-          pnpm release ${{ inputs.dry_run && '--dry-run' || '' }} | tee release-output.log
+      - name: Release
+        run: pnpm release ${{ inputs.dry_run && '--dry-run' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HUSKY: '0'
-      - name: Summarize release outcome
-        if: always()
-        run: |
-          if grep -qi 'no relevant changes' release-output.log; then
-            echo "### No release-worthy commits since the last release; nothing published." >> "$GITHUB_STEP_SUMMARY"
-          else
-            {
-              echo "### Release run completed"
-              grep -E 'Published release|Publishing version' release-output.log || true
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      - name: Summary
+        if: inputs.dry_run
+        run: echo "Dry run complete; nothing was published and no tag was created." >> "$GITHUB_STEP_SUMMARY"

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import config from '../release.config.cjs';
+import config from '../release.config.js';
 
 // Resolve the plugins bundled with semantic-release, rather than installing
 // competing copies that can drift out of compatibility with its writer.
