@@ -4,6 +4,7 @@
 [![NPM Downloads][npm-downloads]][npmtrends-url]
 [![Tests][tests-badge]][tests-url]
 [![Coverage][coverage-badge]][coverage-url]
+[![Discord](https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white)][discord-url]
 
 This Fastify plugin is inspired by the file based routers in Next.js and Remix.
 
@@ -462,6 +463,7 @@ pnpm test # vitest
 [tests-url]: https://github.com/bhouston/fastify-file-router/actions/workflows/ci.yml
 [coverage-badge]: https://codecov.io/gh/bhouston/fastify-file-router/branch/main/graph/badge.svg
 [coverage-url]: https://codecov.io/gh/bhouston/fastify-file-router
+[discord-url]: https://discord.gg/fwupDN493R
 
 ## Contributing and releases
 
