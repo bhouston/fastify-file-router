@@ -16,7 +16,7 @@ const features = [
   },
   {
     title: 'Fastify, all the way',
-    body: 'Keep Fastify hooks, schemas, and route options. Add file discovery to an existing server and mount routes where you need them.',
+    body: 'Use Fastify hooks and schemas. Add file discovery to an existing server and mount routes where you need them.',
     to: '/docs/examples',
   },
 ];
