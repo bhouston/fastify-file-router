@@ -10,16 +10,16 @@ Each route filename ends in an HTTP method and extension, such as `users.get.ts`
 
 The default convention is `remix`:
 
-| File under the routes directory | Registered route |
-| --- | --- |
-| `get.ts` | `GET /` |
-| `health.get.ts` | `GET /health` |
-| `users/post.ts` | `POST /users` |
-| `users.$id.get.ts` | `GET /users/:id` |
-| `users/$id/patch.ts` | `PATCH /users/:id` |
-| `files.$.get.ts` | `GET /files/*` |
-| `(auth)/login.post.ts` | `POST /login` |
-| `sitemap[.]xml.get.ts` | `GET /sitemap.xml` |
+| File under the routes directory | Registered route   |
+| ------------------------------- | ------------------ |
+| `get.ts`                        | `GET /`            |
+| `health.get.ts`                 | `GET /health`      |
+| `users/post.ts`                 | `POST /users`      |
+| `users.$id.get.ts`              | `GET /users/:id`   |
+| `users/$id/patch.ts`            | `PATCH /users/:id` |
+| `files.$.get.ts`                | `GET /files/*`     |
+| `(auth)/login.post.ts`          | `POST /login`      |
+| `sitemap[.]xml.get.ts`          | `GET /sitemap.xml` |
 
 Supported method names are lowercase `get`, `post`, `put`, `patch`, `delete`, and `head`. A route file exports a named `route` object containing its schema and handler, usually created with `defineRoute` or `defineRouteZod`.
 
@@ -37,10 +37,10 @@ await app.register(fastifyFileRouter, {
 ```
 
 | File under the routes directory | Registered route |
-| --- | --- |
-| `users/[id]/get.ts` | `GET /users/:id` |
-| `files/[...path]/get.ts` | `GET /files/*` |
-| `(auth)/login/post.ts` | `POST /login` |
+| ------------------------------- | ---------------- |
+| `users/[id]/get.ts`             | `GET /users/:id` |
+| `files/[...path]/get.ts`        | `GET /files/*`   |
+| `(auth)/login/post.ts`          | `POST /login`    |
 
 This setting changes parameter syntax. Routes still use method filenames such as `get.ts`; they do not use Next.js `page.tsx` or `route.ts` files. A catch-all maps to Fastify's wildcard, accessible as `request.params['*']` when you supply a matching parameter type or schema.
 

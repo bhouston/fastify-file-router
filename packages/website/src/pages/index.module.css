@@ -1,0 +1,117 @@
+.hero {
+  padding: 6rem 0 4rem;
+  background: linear-gradient(135deg, #edf6f1, #f7f8f3 65%, #d9eee7);
+}
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+.eyebrow {
+  color: var(--ifm-color-primary);
+  font-size: 0.85rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.hero h1 {
+  font-size: clamp(3rem, 5.5vw, 5rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+.hero h1 span {
+  color: var(--ifm-color-primary);
+}
+.lead {
+  max-width: 36rem;
+  font-size: 1.22rem;
+  line-height: 1.65;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.8rem 0;
+}
+.compatibility {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+}
+.routes {
+  min-width: 0;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 16px;
+  padding: 1.5rem;
+  background: var(--ifm-background-color);
+  box-shadow: 0 24px 60px #142a3212;
+}
+.panelTitle {
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+.install {
+  margin-top: 2rem;
+}
+.routes pre {
+  font-size: 0.8rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  padding: 4rem 0;
+}
+.card {
+  padding: 1.8rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+}
+.card h2 {
+  font-size: 1.35rem;
+}
+.example {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 4rem;
+  align-items: center;
+  padding: 1rem 0 5rem;
+}
+.example > * {
+  min-width: 0;
+}
+.example h2 {
+  font-size: 2.3rem;
+  letter-spacing: -0.03em;
+}
+.callout {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2.5rem;
+  margin-bottom: 4rem;
+  border-radius: 16px;
+  background: var(--ifm-color-emphasis-100);
+}
+.callout p {
+  margin-bottom: 0;
+}
+[data-theme='dark'] .hero {
+  background: linear-gradient(135deg, #142a32, #101c20 70%, #173b33);
+}
+@media (max-width: 996px) {
+  .heroGrid,
+  .example,
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .hero {
+    padding: 3rem 0;
+  }
+  .callout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

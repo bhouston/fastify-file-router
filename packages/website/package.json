@@ -1,0 +1,20 @@
+{
+  "name": "@fastify-file-router/website",
+  "private": true,
+  "scripts": {
+    "build": "docusaurus build",
+    "dev": "docusaurus start",
+    "serve": "docusaurus serve"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.10.2",
+    "@docusaurus/preset-classic": "^3.10.2",
+    "docusaurus-plugin-typedoc": "^1.4.3",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.9.0",
+    "typescript": "~6.0.3"
+  }
+}
