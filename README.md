@@ -8,7 +8,9 @@
 
 A Fastify plugin, inspired by the file-based routers in Next.js and Remix, that registers server routes from filenames and nested directories, with full TypeScript type safety via `defineRoute()`/`defineRouteZod()`.
 
-See [packages/fastify-file-router/README.md](packages/fastify-file-router/README.md) for full documentation.
+Read the **[documentation website](https://bhouston.github.io/fastify-file-router/)** for getting started, routing conventions, typed validation, code examples, and an automatically generated API reference.
+
+The [package README](packages/fastify-file-router/README.md) is also available offline.
 
 ## Development
 

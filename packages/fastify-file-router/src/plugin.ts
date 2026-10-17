@@ -167,6 +167,19 @@ const fastifyFileRouterPlugin: FastifyPluginAsync<FastifyFileRouterOptions> = as
   }
 };
 
+/**
+ * Register route modules discovered beneath `routesDirs` on a Fastify 5 server.
+ *
+ * @example
+ * ```ts
+ * await app.register(fastifyFileRouter, {
+ *   routesDirs: ['./routes'],
+ *   buildRoot: 'dist',
+ *   extensions: ['.js'],
+ *   mount: '/api',
+ * });
+ * ```
+ */
 export const fastifyFileRouter = fp<FastifyFileRouterOptions>(fastifyFileRouterPlugin, {
   // replaced with the package name during build
   name: 'fastify-file-router',

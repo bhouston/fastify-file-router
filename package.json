@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "docs:build": "pnpm --filter @fastify-file-router/website build",
+    "docs:dev": "pnpm --filter @fastify-file-router/website dev",
     "prepare": "husky",
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",

@@ -6,3 +6,6 @@ coverage
 packages/fastify-file-router/LICENSE
 *.tgz
 *.tsbuildinfo
+packages/website/build/
+packages/website/.docusaurus/
+packages/website/docs/api/
