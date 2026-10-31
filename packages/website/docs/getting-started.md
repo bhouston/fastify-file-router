@@ -10,7 +10,7 @@ Use JavaScript or TypeScript, Remix-style `$id` parameters or Next.js-style `[id
 
 ## Install
 
-The package is ESM-only and supports Node.js 22 or later and Fastify 5. For the TypeScript examples below, use Node.js 24 or later with native TypeScript support. Configure your application with `"type": "module"` in `package.json`. Native TypeScript execution supports erasable TypeScript syntax; compile your application when you need other language features.
+The package is ESM-only and supports Node.js 26 or later and Fastify 5. For the TypeScript examples below, use Node.js 24 or later with native TypeScript support. Configure your application with `"type": "module"` in `package.json`. Native TypeScript execution supports erasable TypeScript syntax; compile your application when you need other language features.
 
 ```sh
 pnpm add fastify fastify-file-router zod ajv
