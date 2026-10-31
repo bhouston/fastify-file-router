@@ -54,7 +54,7 @@
   "devDependencies": {
     "@fastify/response-validation": "^3.0.4",
     "node-mocks-http": "^1.18.1",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "peerDependencies": {
     "ajv": "^8",
