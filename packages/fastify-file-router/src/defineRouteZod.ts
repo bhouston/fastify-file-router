@@ -77,7 +77,7 @@ type ExtractZodSchemaTypes<T extends ZodRouteSchema> = {
 type TypedZodRouteHandler<T extends ZodRouteSchema> = (
   request: FastifyRequest<ExtractZodSchemaTypes<T>>,
   reply: FastifyReply,
-) => Promise<unknown> | unknown;
+) => unknown; // may be sync or async
 
 /**
  * Route module returned by defineRouteZod

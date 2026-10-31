@@ -22,7 +22,7 @@ type ExtractSchemaTypes<T extends FastifySchema> = {
 type TypedRouteHandler<T extends FastifySchema> = (
   request: FastifyRequest<ExtractSchemaTypes<T>>,
   reply: FastifyReply,
-) => Promise<unknown> | unknown;
+) => unknown; // may be sync or async
 
 /**
  * Route module returned by defineRoute

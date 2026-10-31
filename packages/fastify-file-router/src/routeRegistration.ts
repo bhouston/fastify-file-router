@@ -199,7 +199,7 @@ export function convertRoutePath(segments: string[], convention: FileRouteConven
   if (convention === 'next') {
     return toRouteNextStyle(segments, fullPath);
   }
-  throw new Error(`Invalid convention "${convention}"`);
+  throw new Error(`Invalid convention "${String(convention)}"`);
 }
 
 /**
