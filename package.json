@@ -45,6 +45,7 @@
     "semantic-release": "^25.0.9",
     "semver": "^7.8.5",
     "size-limit": "^14.0.0",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.2"

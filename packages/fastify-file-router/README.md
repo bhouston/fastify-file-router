@@ -443,7 +443,7 @@ Example profile logs:
 ```bash
 pnpm install
 pnpm dev
-pnpm tsc # typescript-native
+pnpm tsc # check and emit with the Rust TypeScript compiler (tsrs)
 pnpm build
 pnpm lint # oxlint
 pnpm lint:fix
