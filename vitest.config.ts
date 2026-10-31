@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     watch: false,
     isolate: false,
+    fsModuleCache: true,
     exclude: [...configDefaults.exclude, '**/dist/**', '**/publish/**'],
     coverage: {
       provider: 'v8',
