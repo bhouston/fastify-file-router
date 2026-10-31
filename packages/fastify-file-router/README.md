@@ -10,7 +10,7 @@ This Fastify plugin is inspired by the file based routers in Next.js and Remix.
 
 This allows you to specify all of your server routes using either filenames or a combination of filenames and nested directories.
 
-Supports both JavaScript and TypeScript (on Node 26+.)
+Supports both JavaScript and TypeScript (on Node 22+.)
 
 ## Installation
 
