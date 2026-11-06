@@ -638,10 +638,10 @@ describe('routeRegistration integration', () => {
 
     const logMessages: string[] = [];
     const originalLog = app.log.info;
-    app.log.info = ((message: string) => {
+    app.log.info = (message: string) => {
       logMessages.push(message);
       originalLog.call(app.log, message);
-    });
+    };
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -664,10 +664,10 @@ describe('routeRegistration integration', () => {
 
     const logMessages: string[] = [];
     const originalLog = app.log.info;
-    app.log.info = ((message: string) => {
+    app.log.info = (message: string) => {
       logMessages.push(message);
       originalLog.call(app.log, message);
-    });
+    };
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -690,10 +690,10 @@ describe('routeRegistration integration', () => {
 
     const logMessages: string[] = [];
     const originalLog = app.log.info;
-    app.log.info = ((message: string) => {
+    app.log.info = (message: string) => {
       logMessages.push(message);
       originalLog.call(app.log, message);
-    });
+    };
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -716,10 +716,10 @@ describe('routeRegistration integration', () => {
 
     const logMessages: string[] = [];
     const originalLog = app.log.info;
-    app.log.info = ((message: string) => {
+    app.log.info = (message: string) => {
       logMessages.push(message);
       originalLog.call(app.log, message);
-    });
+    };
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
