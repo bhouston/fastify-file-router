@@ -6,7 +6,8 @@ import pLimit, { type LimitFunction } from 'p-limit';
 import type { z } from 'zod';
 import { formatJsonSchemaError, formatZodError, isZodSchema, type SchemaTypeIndicators } from './defineRouteZod.js';
 import type { FileRouteConvention } from './FastifyFileRouterOptions.js';
-import { toHttpMethod, toRouteNextStyle, toRouteRemixStyle } from './routeConverter.js';
+import { toHttpMethod, toRouteNextStyle, toRoutePaths, toRouteRemixStyle } from './routeConverter.js';
+import { loadRouteModule } from './routeLoader.js';
 import type { RouteHandler, RouteModule, RouteSchema } from './types.js';
 
 type TaskExecutor = () => Promise<TaskExecutor[]>;
@@ -128,10 +129,12 @@ export function parseFileName(
   const placeholder = '__LITERAL_DOT__';
 
   // Replace [.] with placeholder (no dots in placeholder to avoid splitting issues)
-  const fileNameWithPlaceholder = fileName.replace(/\[\.\]/g, placeholder);
+  const fileNameWithPlaceholder = fileName
+    .replace(/\?\[[^\]]*\]/g, (block) => block.replaceAll('.', '\0'))
+    .replace(/\[\.\]/g, placeholder);
 
   // Split by dots - the placeholder will be part of a segment
-  const segments = fileNameWithPlaceholder.split('.');
+  const segments = fileNameWithPlaceholder.split('.').map((segment) => segment.replaceAll('\0', '.'));
 
   // Check segment count first
   if (segments.length < 2) {
@@ -263,7 +266,7 @@ export function extractRouteParams(routePath: string): string[] {
   // Extract parameter names using regex to match :paramName patterns
   // Stop at dots (.) since [.] ends a parameter and starts a literal segment
   // e.g., /:assetName.glb should extract 'assetName', not 'assetName.glb'
-  const paramRegex = /:([^/.]+)/g;
+  const paramRegex = /:([^/.(]+)(?:\([^)]*\))?/g;
   const params: string[] = [];
   const matches = routePath.matchAll(paramRegex);
 
@@ -460,7 +463,7 @@ export async function registerRoutes(
       const parsed = parseFileName(fileName, extensions, fullPath);
       if (!parsed) {
         fastify.log[logLevel](
-          `Ignoring file ${fullPath} as its extension, ${`.${fileName.split('.').pop()}`}, isn't in the list of extensions.`,
+          `Ignoring file ${fullPath} as its extension, .${fileName.split('.').pop()}, isn't in the list of extensions.`,
         );
         return [];
       }
@@ -469,11 +472,16 @@ export async function registerRoutes(
       const typedMethod = toHttpMethod(method, fullPath);
 
       // Convert route segments to route path
-      const routePath = convertRoutePath([...baseSegments, ...routeSegments], convention, fullPath);
+      const routePaths = toRoutePaths([...baseSegments, ...routeSegments], convention, fullPath);
+      const routePath = routePaths[0]!;
 
       // Import and register the route
       const importStart = performance.now();
-      const handlerModule = (await import(fullPath)) as RouteModule;
+      // Keep ordinary imports available to TypeScript loaders and test transforms.
+      // Reserved URL characters require the native file-URL loader.
+      const handlerModule = /[?#%]/.test(fullPath)
+        ? await loadRouteModule(fullPath)
+        : ((await import(fullPath)) as RouteModule);
       const importMs = performance.now() - importStart;
       const url = buildUrl(routePath, mount);
 
@@ -501,13 +509,6 @@ export async function registerRoutes(
         }
         handler = handlerModule.default;
         schema = handlerModule.schema;
-      }
-
-      // Check if logLevel is verbose (debug or trace)
-      if (logRoutes) {
-        fastify.log[logLevel](
-          `Registering route ${typedMethod.toUpperCase()} ${url} ${schema ? '(with schema)' : ''} from ${fullPath}`,
-        );
       }
 
       const prepareStart = performance.now();
@@ -540,8 +541,8 @@ export async function registerRoutes(
       }
 
       // Check if we have any Zod schemas (if so, we need custom validation)
-      const hasZodSchemas = zodSchemas && Object.keys(zodSchemas as Record<string, unknown>).length > 0;
-      const hasSchemaTypes = schemaTypes && Object.keys(schemaTypes as Record<string, unknown>).length > 0;
+      const hasZodSchemas = zodSchemas && Object.keys(zodSchemas).length > 0;
+      const hasSchemaTypes = schemaTypes && Object.keys(schemaTypes).length > 0;
 
       // Check if we have Zod response schemas specifically
       const zodResponseSchemas =
@@ -821,21 +822,55 @@ export async function registerRoutes(
       }
 
       const prepareMs = performance.now() - prepareStart;
-      const registerStart = performance.now();
-      fastify.route(routeOptions);
-      const registerMs = performance.now() - registerStart;
-      const totalMs = performance.now() - routeStart;
-
-      if (context.profiling.enabled) {
-        context.profiling.routes.push({
-          filePath: fullPath,
-          method: typedMethod,
-          url,
-          importMs,
-          prepareMs,
-          registerMs,
-          totalMs,
-        });
+      for (const [index, concretePath] of routePaths.entries()) {
+        const concreteUrl = buildUrl(concretePath, mount);
+        const concreteSchema = fastifySchema ? { ...fastifySchema } : undefined;
+        if (
+          index > 0 &&
+          concreteSchema &&
+          'operationId' in concreteSchema &&
+          typeof concreteSchema.operationId === 'string'
+        ) {
+          concreteSchema.operationId = `${concreteSchema.operationId}-optional-${index}`;
+        }
+        // Keep documentation schemas aligned with the concrete path. Optional properties
+        // absent from this variant do not participate in validation or documentation.
+        if (
+          routePaths.length > 1 &&
+          !concretePath.includes('*') &&
+          concreteSchema?.params &&
+          typeof concreteSchema.params === 'object'
+        ) {
+          const params = concreteSchema.params as { properties?: Record<string, unknown>; required?: string[] };
+          if (params.properties) {
+            const names = extractRouteParams(concretePath);
+            concreteSchema.params = {
+              ...params,
+              properties: Object.fromEntries(
+                Object.entries(params.properties).filter(([name]) => names.includes(name)),
+              ),
+            };
+          }
+        }
+        if (logRoutes) {
+          fastify.log[logLevel](
+            `Registering route ${typedMethod.toUpperCase()} ${concreteUrl} ${schema ? '(with schema)' : ''} from ${fullPath}`,
+          );
+        }
+        const registerStart = performance.now();
+        fastify.route({ ...routeOptions, url: concreteUrl, schema: concreteSchema });
+        const registerMs = performance.now() - registerStart;
+        if (context.profiling.enabled) {
+          context.profiling.routes.push({
+            filePath: fullPath,
+            method: typedMethod,
+            url: concreteUrl,
+            importMs,
+            prepareMs,
+            registerMs,
+            totalMs: performance.now() - routeStart,
+          });
+        }
       }
 
       return [];

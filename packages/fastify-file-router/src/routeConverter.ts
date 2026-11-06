@@ -13,7 +13,7 @@ export function toHttpMethod(method: string, fullPath: string): HTTPMethods {
   if (!method || !methodRegex.test(method)) {
     throw new Error(`Invalid method "${method}" in file ${fullPath}`);
   }
-  return method as HTTPMethods;
+  return method;
 }
 
 /**
@@ -32,10 +32,10 @@ function mergeLiteralDots(segments: string[], fullPath: string): string[] {
       if (merged.length === 0) {
         throw new Error(`Invalid segment "[.]" at start of route in file ${fullPath}`);
       }
-      // Don't merge [.] if the previous segment is a parameter (starts with $)
+      // Keep literal extensions separate from Remix or Next.js parameters.
       // Parameters should end at [.], and [.] + next segment should be merged separately
       const prevSegment = merged[merged.length - 1];
-      if (prevSegment?.startsWith('$')) {
+      if (prevSegment?.startsWith('$') || (prevSegment?.startsWith('[') && prevSegment.endsWith(']'))) {
         // Keep the parameter segment as-is, merge [.] with next segment
         const next = segments[i + 1];
         if (next) {
@@ -145,4 +145,39 @@ export function toRouteNextStyle(segments: string[], fullPath: string): string {
   }
 
   return pathParts.join('/');
+}
+
+/** Expand optional suffix blocks into concrete Fastify paths. */
+export function toRoutePaths(segments: string[], convention: 'remix' | 'next', fullPath: string): string[] {
+  const suffixes: { token: string; required: string; delimiter: string; optional: string }[] = [];
+  let prefix = '__ffr_optional_';
+  while (segments.some((segment) => segment.includes(prefix))) prefix += '_';
+  const prepared = segments.map((segment) => {
+    if (!segment.includes('?')) return segment;
+    const match = segment.match(
+      /^(?:\$([A-Za-z_][A-Za-z0-9_]*)|\[([A-Za-z_][A-Za-z0-9_]*)\])\?\[([@._~-])\$?([A-Za-z_][A-Za-z0-9_]*)\]$/,
+    );
+    const required = convention === 'remix' ? match?.[1] : match?.[2];
+    if (!match || !required || required === match[4]) {
+      throw new Error(
+        `Invalid optional segment "${segment}" in file ${fullPath}; expected ${convention === 'remix' ? '$name' : '[name]'}?[@version] with distinct parameter names`,
+      );
+    }
+    const token = `${prefix}${suffixes.length}__`;
+    suffixes.push({ token, required, delimiter: match[3]!, optional: match[4]! });
+    return convention === 'remix' ? `$${token}` : `[${token}]`;
+  });
+  const convert = convention === 'remix' ? toRouteRemixStyle : toRouteNextStyle;
+  let paths = [convert(prepared, fullPath)];
+  for (const { token, required, delimiter, optional } of suffixes) {
+    // A regex terminates the first parameter before delimiters other than '-' or '.'.
+    // Reserve the delimiter so malformed suffixes cannot fall back to the bare-name route.
+    const escaped = delimiter === '-' ? '\\-' : delimiter;
+    const name = `:${required}([^${escaped}]+)`;
+    paths = paths.flatMap((routePath) => [
+      routePath.replace(`:${token}`, `${name}${delimiter}:${optional}([^${escaped}]+)`),
+      routePath.replace(`:${token}`, name),
+    ]);
+  }
+  return paths;
 }

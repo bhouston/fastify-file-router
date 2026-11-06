@@ -2,6 +2,9 @@ import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    // Route filenames can contain literal '?', which Vite interprets as a query.
+    // Keep the small URL-aware loader native so Node resolves these paths.
+    server: { deps: { external: [/routeLoader\.(?:ts|js)$/] } },
     watch: false,
     isolate: false,
     fsModuleCache: true,

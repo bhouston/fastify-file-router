@@ -641,7 +641,7 @@ describe('routeRegistration integration', () => {
     app.log.info = ((message: string) => {
       logMessages.push(message);
       originalLog.call(app.log, message);
-    }) as typeof originalLog;
+    });
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -667,7 +667,7 @@ describe('routeRegistration integration', () => {
     app.log.info = ((message: string) => {
       logMessages.push(message);
       originalLog.call(app.log, message);
-    }) as typeof originalLog;
+    });
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -693,7 +693,7 @@ describe('routeRegistration integration', () => {
     app.log.info = ((message: string) => {
       logMessages.push(message);
       originalLog.call(app.log, message);
-    }) as typeof originalLog;
+    });
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -719,7 +719,7 @@ describe('routeRegistration integration', () => {
     app.log.info = ((message: string) => {
       logMessages.push(message);
       originalLog.call(app.log, message);
-    }) as typeof originalLog;
+    });
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -2082,5 +2082,15 @@ describe('routeRegistration - task queue runtime context', () => {
       expect(ajvOne).toBeUndefined();
       expect(ajvTwo).toBeUndefined();
     }
+  });
+});
+
+describe('optional suffix filename parsing', () => {
+  test('keeps dots inside optional blocks while splitting method and extension', () => {
+    expect(parseFileName('$assetName?[.format].get.ts', ['.ts'], '/test')).toEqual({
+      routeSegments: ['$assetName?[.format]'],
+      method: 'get',
+      extension: '.ts',
+    });
   });
 });
