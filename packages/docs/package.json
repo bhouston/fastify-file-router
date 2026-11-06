@@ -1,0 +1,27 @@
+{
+  "name": "@fastify-file-router/docs",
+  "private": true,
+  "scripts": {
+    "generate": "typedoc",
+    "build": "pnpm generate && docusaurus build",
+    "dev": "pnpm generate && docusaurus start",
+    "serve": "docusaurus serve",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.10.2",
+    "@docusaurus/preset-classic": "^3.10.2",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.9.0",
+    "typescript": "~6.0.3"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "^3.10.2",
+    "@docusaurus/theme-classic": "^3.10.2",
+    "@docusaurus/types": "^3.10.2",
+    "@types/react": "^19.3.0"
+  }
+}

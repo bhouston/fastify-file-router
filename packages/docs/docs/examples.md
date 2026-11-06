@@ -1,5 +1,6 @@
 ---
 sidebar_position: 4
+description: Worked Fastify File Router examples for pagination, missing-resource responses, testing without a port and inspecting route loading.
 ---
 
 # Examples

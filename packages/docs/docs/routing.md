@@ -1,5 +1,6 @@
 ---
 sidebar_position: 2
+description: How route filenames, folders, parameters and HTTP method suffixes map to Fastify URLs in the Remix and Next.js conventions.
 ---
 
 # Routing conventions

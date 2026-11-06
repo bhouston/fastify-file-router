@@ -1,7 +1,9 @@
 import type { LogLevel } from 'fastify';
 
+/** Filename convention: `remix` uses `$id` parameters, `next` uses `[id]`. */
 export type FileRouteConvention = 'remix' | 'next';
 
+/** Startup profiling options for route discovery, import and registration. */
 export type FastifyFileRouterProfileOptions = {
   /**
    * Enable startup profiling logs for route discovery and registration.
@@ -20,6 +22,7 @@ export type FastifyFileRouterProfileOptions = {
   slowestRoutesCount?: number;
 };
 
+/** Options accepted by the `fastifyFileRouter` plugin. All are optional. */
 export type FastifyFileRouterOptions = {
   /**
    * Where the routes should be mounted on the server.

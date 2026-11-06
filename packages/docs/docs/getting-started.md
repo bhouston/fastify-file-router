@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+description: Install Fastify File Router, create a routes directory and serve your first file-based Fastify endpoint.
 ---
 
 # Getting started

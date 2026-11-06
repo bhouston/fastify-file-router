@@ -5,6 +5,9 @@ import { z } from 'zod';
 /**
  * Type helper to check if a value is a Zod schema
  * Exported for use in routeRegistration.ts
+ *
+ * @param value - Any value to test.
+ * @returns `true` when the value looks like a Zod schema (has `_def` and `safeParse`).
  */
 export function isZodSchema(value: unknown): value is z.ZodTypeAny {
   return typeof value === 'object' && value !== null && '_def' in value && 'safeParse' in value;
@@ -15,10 +18,15 @@ export function isZodSchema(value: unknown): value is z.ZodTypeAny {
  * This allows mixing validation approaches within a single route definition.
  */
 export interface ZodRouteSchema {
+  /** Schema for the URL path parameters. */
   params?: z.ZodTypeAny | JSONSchema;
+  /** Schema for the query string. */
   querystring?: z.ZodTypeAny | JSONSchema;
+  /** Schema for the request body. */
   body?: z.ZodTypeAny | JSONSchema;
+  /** Schema for the request headers. */
   headers?: z.ZodTypeAny | JSONSchema;
+  /** Response schemas keyed by status code. */
   response?: Record<string | number, z.ZodTypeAny | JSONSchema>;
   // Allow other FastifySchema properties like description, tags, etc.
   [key: string]: unknown;
@@ -28,10 +36,15 @@ export interface ZodRouteSchema {
  * Schema type indicators to track which fields use Zod vs JSON Schema
  */
 export interface SchemaTypeIndicators {
+  /** Whether `params` was given as a Zod or JSON Schema. */
   params?: 'zod' | 'json';
+  /** Whether `querystring` was given as a Zod or JSON Schema. */
   querystring?: 'zod' | 'json';
+  /** Whether `body` was given as a Zod or JSON Schema. */
   body?: 'zod' | 'json';
+  /** Whether `headers` was given as a Zod or JSON Schema. */
   headers?: 'zod' | 'json';
+  /** Whether each response schema, keyed by status code, was given as a Zod or JSON Schema. */
   response?: Record<string | number, 'zod' | 'json'>;
 }
 
@@ -83,6 +96,10 @@ type TypedZodRouteHandler<T extends ZodRouteSchema> = (
  * Route module returned by defineRouteZod
  */
 export interface DefinedZodRoute<T extends ZodRouteSchema> {
+  /**
+   * The Fastify schema, with Zod schemas converted to JSON Schema. The `__zodSchemas` and `__schemaTypes`
+   * metadata keeps the original Zod schemas so the plugin can parse requests at runtime.
+   */
   schema: FastifySchema & {
     __zodSchemas?: Partial<{
       params?: z.ZodTypeAny;
@@ -93,6 +110,7 @@ export interface DefinedZodRoute<T extends ZodRouteSchema> {
     }>;
     __schemaTypes?: SchemaTypeIndicators;
   };
+  /** The request handler, typed from the Zod and JSON Schemas in `schema`. */
   handler: TypedZodRouteHandler<T>;
 }
 
@@ -108,13 +126,17 @@ function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
     unrepresentable: 'any',
   });
   delete jsonSchema.$schema;
-  return jsonSchema as Record<string, unknown>;
+  return jsonSchema;
 }
 
 /**
  * Formats Zod validation errors into a single error message string.
  * Format: "Bad Request: [component] - [comma-separated list of issues]"
  * This function is exported so it can be used in routeRegistration.ts
+ *
+ * @param error - The Zod validation error.
+ * @param component - Which part of the request failed, such as `params` or `body`.
+ * @returns The `Bad Request: ...` message, with each issue prefixed by its dotted path.
  */
 export function formatZodError(error: z.ZodError, component: string): string {
   const issueMessages = error.issues.map((issue) => {
@@ -128,6 +150,10 @@ export function formatZodError(error: z.ZodError, component: string): string {
  * Formats JSON Schema validation errors into a single error message string.
  * Format: "Bad Request: [component] - [comma-separated list of issues]"
  * This function is exported so it can be used in routeRegistration.ts
+ *
+ * @param errors - Ajv-style validation errors with an `instancePath` and optional `message`.
+ * @param component - Which part of the request failed, such as `params` or `body`.
+ * @returns The `Bad Request: ...` message, with each issue prefixed by its property path.
  */
 export function formatJsonSchemaError(
   errors: Array<{ instancePath: string; message?: string }>,
@@ -145,6 +171,11 @@ export function formatJsonSchemaError(
  * Helper to define a route using Zod schemas and/or JSON Schema.
  * This function extracts TypeScript types from Zod schemas using `z.infer`
  * and from JSON Schema using `FromSchema`, allowing you to mix validation approaches.
+ * Zod schemas are converted to JSON Schema for Fastify; the originals are kept so requests are parsed with Zod.
+ *
+ * @typeParam T - The route schema, mixing Zod and JSON Schema per field.
+ * @param route - The route's `schema` and `handler`.
+ * @returns The route with a Fastify-compatible `schema`, to be exported as `route` from a route file.
  *
  * @example
  * ```typescript
@@ -215,7 +246,7 @@ export function defineRouteZod<T extends ZodRouteSchema>(route: {
       zodSchemas.params = inputSchema.params;
       schemaTypes.params = 'zod';
     } else {
-      fastifySchema.params = inputSchema.params as JSONSchema;
+      fastifySchema.params = inputSchema.params;
       schemaTypes.params = 'json';
     }
   }
@@ -227,7 +258,7 @@ export function defineRouteZod<T extends ZodRouteSchema>(route: {
       zodSchemas.querystring = inputSchema.querystring;
       schemaTypes.querystring = 'zod';
     } else {
-      fastifySchema.querystring = inputSchema.querystring as JSONSchema;
+      fastifySchema.querystring = inputSchema.querystring;
       schemaTypes.querystring = 'json';
     }
   }
@@ -239,7 +270,7 @@ export function defineRouteZod<T extends ZodRouteSchema>(route: {
       zodSchemas.body = inputSchema.body;
       schemaTypes.body = 'zod';
     } else {
-      fastifySchema.body = inputSchema.body as JSONSchema;
+      fastifySchema.body = inputSchema.body;
       schemaTypes.body = 'json';
     }
   }
@@ -251,7 +282,7 @@ export function defineRouteZod<T extends ZodRouteSchema>(route: {
       zodSchemas.headers = inputSchema.headers;
       schemaTypes.headers = 'zod';
     } else {
-      fastifySchema.headers = inputSchema.headers as JSONSchema;
+      fastifySchema.headers = inputSchema.headers;
       schemaTypes.headers = 'json';
     }
   }

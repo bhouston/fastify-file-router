@@ -34,6 +34,7 @@ jobs:
         run: pnpm exec oxfmt --check .
       - run: pnpm test:coverage
       # --- repository-specific steps (package-content check, size budget, e2e, docs, ...) go here ---
+      - run: pnpm docs:build
       - run: pnpm release:check
       - name: Check published JavaScript size
         run: pnpm size | tee -a "$GITHUB_STEP_SUMMARY"

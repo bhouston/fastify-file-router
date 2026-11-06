@@ -1,5 +1,6 @@
 ---
 sidebar_position: 3
+description: Define routes with JSON Schema or Zod and get validated, fully typed request parameters, query, body and headers.
 ---
 
 # Typed routes
