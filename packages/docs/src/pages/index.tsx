@@ -43,15 +43,12 @@ const tree = `src/routes/
 └── users.$id.get.ts     → GET /users/:id`;
 
 const route = `// src/routes/users.$id.get.ts
-import { defineRoute } from 'fastify-file-router';
+import { defineRouteZod } from 'fastify-file-router';
+import { z } from 'zod';
 
-export const route = defineRoute({
+export const route = defineRouteZod({
   schema: {
-    params: {
-      type: 'object',
-      properties: { id: { type: 'string' } },
-      required: ['id'],
-    } as const,
+    params: z.object({ id: z.uuid() }),
   },
   handler: async (request) => {
     return { id: request.params.id }; // inferred string
@@ -118,8 +115,8 @@ export default function Home() {
               Use the inferred request.
             </h2>
             <p>
-              Your route file owns its handler and validation. JSON Schema works with Fastify's validation; Zod adds
-              runtime parsing and can be mixed with JSON Schema in a single route.
+              Your route file owns its handler and validation. A Zod schema validates the request at runtime and types
+              it in your handler. Prefer JSON Schema? Use it instead, or mix both in a single route.
             </p>
             <Link to="/docs/typed-routes/">Explore typed routes →</Link>
           </div>
