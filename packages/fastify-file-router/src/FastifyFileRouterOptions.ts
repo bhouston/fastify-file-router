@@ -69,7 +69,10 @@ export type FastifyFileRouterOptions = {
    */
   zodResponseValidation?: boolean;
   /**
-   * Exclusion patterns for files to ignore.
+   * Exclusion patterns for files and directories to ignore. Replaces the defaults, so include any default
+   * patterns you still need.
+   * By default this skips names starting with `.` or `_`, `.test`/`.spec` JS and TS files, `__test__`/`__spec__`
+   * directories and `.d.ts` files.
    */
   exclude?: RegExp[];
   /**

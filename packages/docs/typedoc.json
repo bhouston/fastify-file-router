@@ -1,12 +1,11 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["../fastify-file-router/src/index.ts", "../fastify-file-router/src/FastifyFileRouterOptions.ts"],
+  "entryPoints": ["../fastify-file-router/src/index.ts"],
   "tsconfig": "../fastify-file-router/tsconfig.json",
   "out": "docs/api",
   "plugin": ["typedoc-plugin-markdown"],
   "name": "API reference",
   "readme": "none",
-  "entryFileName": "modules",
   "outputFileStrategy": "modules",
   "hidePageHeader": true,
   "hideBreadcrumbs": true,
@@ -20,5 +19,26 @@
   "typeDeclarationFormat": "table",
   "useCodeBlocks": true,
   "excludeExternals": true,
-  "intentionallyNotExported": ["TypedRouteHandler", "TypedZodRouteHandler"]
+  "intentionallyNotExported": ["TypedRouteHandler", "TypedZodRouteHandler"],
+  "validation": {
+    "notDocumented": true
+  },
+  "requiredToBeDocumented": [
+    "Enum",
+    "EnumMember",
+    "Variable",
+    "Function",
+    "Class",
+    "Interface",
+    "Constructor",
+    "Property",
+    "Method",
+    "CallSignature",
+    "Parameter",
+    "TypeParameter",
+    "Accessor",
+    "TypeAlias"
+  ],
+  "treatValidationWarningsAsErrors": true,
+  "entryFileName": "index"
 }
