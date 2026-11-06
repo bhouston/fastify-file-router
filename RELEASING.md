@@ -47,6 +47,7 @@ Publishing is not atomic. If a run fails part way, compare the registry versions
 ### Published Artifacts
 
 - `fastify-file-router` on npm, from `packages/fastify-file-router`. The root package and `@fastify-file-router/docs` are private and never published.
+- The website at `fastify-file-router.ben3d.ca`, deployed after each published release (see Website).
 
 ### Required Checks
 
@@ -66,4 +67,4 @@ Explain any intentional threshold change in the PR.
 
 ### Website
 
-The documentation site deploys to GitHub Pages from `.github/workflows/pages.yml` on every push to `main`, independent of releases. Pages must use **GitHub Actions** as its source. See `packages/docs/README.md`.
+The Release workflow calls `pages.yml` after each published release. It builds `packages/docs` from the new `v<version>` tag and deploys with the built-in `GITHUB_TOKEN`. Dry runs and runs that publish nothing do not deploy, and merges to `main` do not deploy. To redeploy the latest release, run `gh workflow run pages.yml --ref main` (optionally with `-f ref=v<version>`). Pages must use **GitHub Actions** as its source. See `packages/docs/README.md`.
