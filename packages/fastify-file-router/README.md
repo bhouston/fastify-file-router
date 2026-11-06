@@ -469,3 +469,11 @@ pnpm test # vitest
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the issue → branch → PR workflow and release setup, [GitHub Releases](https://github.com/bhouston/fastify-file-router/releases) for changes, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 Full guides, examples, and API reference: **[Fastify File Router documentation](https://bhouston.github.io/fastify-file-router/)**.
+
+### Optional parameter suffixes
+
+A Remix-style folder named `$assetName?[@version]` makes an `@version` suffix optional. Put `[.]webp.get.ts` inside it to match both `/chair.webp` and `/chair@1.2.3.webp`; handlers receive separate `assetName` and optional `version` parameters. Labels such as `draft` are accepted too. Declare `version` optional in your parameter schema. Query parameters remain unchanged.
+
+Flat filenames (`$assetName?[@version][.]webp.get.ts`) and the Next-style equivalent (`[assetName]?[@version]`) also work. The separator can be `@`, `.`, `-`, `_`, or `~`, and is reserved within both values. Empty or repeated separators do not match. Parameter names must be distinct identifiers; `?[@$version]` is also accepted. Each URL segment supports one optional suffix block, and blocks on different segments expand independently.
+
+Each variant registers a concrete route. The all-suffixes-present variant keeps the declared `operationId`; other variants append `-optional-1`, `-optional-2`, and so on. Filenames containing `?` require macOS/Linux or another filesystem that permits that character; Windows filenames do not. See the [routing guide](https://bhouston.github.io/fastify-file-router/docs/routing#optional-parameter-suffixes) for examples.

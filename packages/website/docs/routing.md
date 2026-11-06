@@ -70,3 +70,34 @@ Multiple route directories share the same mount. Avoid overlapping directories a
 Enable Fastify logging and `logRoutes: true` to see registered routes and their source files. Invalid method names, invalid route segments, and parameter schemas containing names absent from the URL can fail startup, surfacing configuration mistakes early.
 
 See [examples](examples.md#inspect-route-loading) for startup timing and concurrency controls.
+
+## Optional parameter suffixes
+
+Append `?[@version]` to a named parameter to make the entire `@version` suffix optional. `@` is a literal separator and `version` names a second parameter; it is not literal text in the URL. The `?` belongs to the filesystem convention and never appears in the registered path.
+
+```text
+routes/
+  media/
+    $assetName?[@version]/
+      [.]webp.get.ts
+      [.]ultrahdr[.]jpg.get.ts
+```
+
+This registers both `/media/chair.webp` and `/media/chair@1.2.3.webp`. Handlers receive `{ assetName: 'chair' }` or `{ assetName: 'chair', version: '1.2.3' }`. Labels such as `draft` work too: the router imposes no semver rules. Query strings such as `?width=512` remain ordinary query strings.
+
+Use `$assetName?[@version][.]webp.get.ts` for a flat filename, or `[assetName]?[@version]` with the `next` convention. An explicit `$` in the suffix parameter, such as `?[@$version]`, is also accepted. A suffix consists of one separator (`@`, `.`, `-`, `_`, or `~`) and one parameter name. Both parameter names must be distinct identifiers made from letters, digits, and underscores, starting with a letter or underscore. The separator is reserved within both values; empty values and repeated separators do not match. Each segment may have one optional block; blocks on different segments expand independently.
+
+Declare the suffix parameter optional in your schema:
+
+```ts
+params: z.strictObject({
+  assetName: z.string(),
+  version: z.string().optional(),
+}),
+```
+
+For JSON Schema, include `version` in `properties` but leave it out of `required`. The router registers a concrete path for each combination. The all-suffixes-present path keeps the declared `operationId`; other variants append `-optional-1`, `-optional-2`, and so on. Each concrete documentation schema includes only its path parameters.
+
+This filename syntax requires a filesystem that permits `?` in filenames, such as macOS or Linux. Windows filenames do not permit `?`.
+
+Vite-based test runners interpret `?` in module paths as a query delimiter. This repository keeps optional-route tests in the parent directory and configures Vitest to load the small `routeLoader` module natively; see `vitest.config.ts` and the demo's `api/media/optional-versions.test.ts`.
