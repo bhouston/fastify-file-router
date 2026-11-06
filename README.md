@@ -37,7 +37,7 @@ pnpm test # vitest
 
 ## Releases
 
-See [RELEASING.md](RELEASING.md) for release setup, [GitHub Releases](https://github.com/bhouston/fastify-file-router/releases) for changes, and [SECURITY.md](SECURITY.md) for private vulnerability reports.
+See [RELEASING.md](RELEASING.md) for how releases are published and [GitHub Releases](https://github.com/bhouston/fastify-file-router/releases) for changes. See [SECURITY.md](SECURITY.md) for private vulnerability reports.
 
 ## Contribution
 
