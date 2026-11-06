@@ -35,6 +35,10 @@ pnpm format # oxfmt
 pnpm test # vitest
 ```
 
+## Releases
+
+See [RELEASING.md](RELEASING.md) for release setup, [GitHub Releases](https://github.com/bhouston/fastify-file-router/releases) for changes, and [SECURITY.md](SECURITY.md) for private vulnerability reports.
+
 ## Contribution
 
 See [Contributing Guide](CONTRIBUTING.md).

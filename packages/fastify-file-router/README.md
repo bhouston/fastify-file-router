@@ -458,6 +458,10 @@ Flat filenames (`$assetName?[@version][.]webp.get.ts`) and the Next-style equiva
 
 Each variant registers a concrete route. The all-suffixes-present variant keeps the declared `operationId`; other variants append `-optional-1`, `-optional-2`, and so on. Filenames containing `?` require macOS/Linux or another filesystem that permits that character; Windows filenames do not. See the [routing guide](https://bhouston.github.io/fastify-file-router/docs/routing#optional-parameter-suffixes) for examples.
 
+## Releases
+
+See [GitHub Releases](https://github.com/bhouston/fastify-file-router/releases) for changes and [SECURITY.md](https://github.com/bhouston/fastify-file-router/blob/main/SECURITY.md) for private vulnerability reports.
+
 ## Contribution
 
 See [Contributing Guide](https://github.com/bhouston/fastify-file-router/blob/main/CONTRIBUTING.md).
