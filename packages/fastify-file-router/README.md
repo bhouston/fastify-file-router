@@ -3,7 +3,7 @@
   <a href="https://www.npmtrends.com/fastify-file-router"><img src="https://img.shields.io/npm/dw/fastify-file-router.svg" alt="npm downloads"></a>
   <a href="https://codecov.io/gh/bhouston/fastify-file-router"><img src="https://codecov.io/gh/bhouston/fastify-file-router/branch/main/graph/badge.svg" alt="coverage"></a>
   <a href="https://discord.gg/fwupDN493R"><img src="https://img.shields.io/badge/chat-discord-blue?style=flat&logo=discord" alt="discord chat"></a>
-  <a href="https://bhouston.github.io/fastify-file-router/"><img src="https://img.shields.io/badge/docs-read-blue?style=flat" alt="documentation"></a>
+  <a href="https://fastify-file-router.ben3d.ca/"><img src="https://img.shields.io/badge/docs-read-blue?style=flat" alt="documentation"></a>
 </p>
 <br/>
 
@@ -22,7 +22,7 @@ A Fastify plugin inspired by the file-based routers in Next.js and Remix. Specif
 
 Supports both JavaScript and TypeScript (on Node 22+).
 
-[Read the Docs to Learn More](https://bhouston.github.io/fastify-file-router/).
+[Read the Docs to Learn More](https://fastify-file-router.ben3d.ca/).
 
 ## Installation
 
@@ -456,7 +456,7 @@ A Remix-style folder named `$assetName?[@version]` makes an `@version` suffix op
 
 Flat filenames (`$assetName?[@version][.]webp.get.ts`) and the Next-style equivalent (`[assetName]?[@version]`) also work. The separator can be `@`, `.`, `-`, `_`, or `~`, and is reserved within both values. Empty or repeated separators do not match. Parameter names must be distinct identifiers; `?[@$version]` is also accepted. Each URL segment supports one optional suffix block, and blocks on different segments expand independently.
 
-Each variant registers a concrete route. The all-suffixes-present variant keeps the declared `operationId`; other variants append `-optional-1`, `-optional-2`, and so on. Filenames containing `?` require macOS/Linux or another filesystem that permits that character; Windows filenames do not. See the [routing guide](https://bhouston.github.io/fastify-file-router/docs/routing#optional-parameter-suffixes) for examples.
+Each variant registers a concrete route. The all-suffixes-present variant keeps the declared `operationId`; other variants append `-optional-1`, `-optional-2`, and so on. Filenames containing `?` require macOS/Linux or another filesystem that permits that character; Windows filenames do not. See the [routing guide](https://fastify-file-router.ben3d.ca/docs/routing#optional-parameter-suffixes) for examples.
 
 ## Releases
 

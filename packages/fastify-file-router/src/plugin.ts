@@ -169,6 +169,9 @@ const fastifyFileRouterPlugin: FastifyPluginAsync<FastifyFileRouterOptions> = as
 
 /**
  * Register route modules discovered beneath `routesDirs` on a Fastify 5 server.
+ * The plugin is wrapped with `fastify-plugin`, so routes are added to the instance it is registered on.
+ * Registration rejects with an error when an option is invalid or a directory is missing.
+ * Options are described by `FastifyFileRouterOptions`.
  *
  * @example
  * ```ts

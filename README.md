@@ -3,7 +3,7 @@
   <a href="https://www.npmtrends.com/fastify-file-router"><img src="https://img.shields.io/npm/dw/fastify-file-router.svg" alt="npm downloads"></a>
   <a href="https://codecov.io/gh/bhouston/fastify-file-router"><img src="https://codecov.io/gh/bhouston/fastify-file-router/branch/main/graph/badge.svg" alt="coverage"></a>
   <a href="https://discord.gg/fwupDN493R"><img src="https://img.shields.io/badge/chat-discord-blue?style=flat&logo=discord" alt="discord chat"></a>
-  <a href="https://bhouston.github.io/fastify-file-router/"><img src="https://img.shields.io/badge/docs-read-blue?style=flat" alt="documentation"></a>
+  <a href="https://fastify-file-router.ben3d.ca/"><img src="https://img.shields.io/badge/docs-read-blue?style=flat" alt="documentation"></a>
 </p>
 <br/>
 
@@ -20,7 +20,7 @@
 
 A Fastify plugin, inspired by the file-based routers in Next.js and Remix, that registers server routes from filenames and nested directories, with full TypeScript type safety via `defineRoute()` and `defineRouteZod()`.
 
-[Read the Docs to Learn More](https://bhouston.github.io/fastify-file-router/) for getting started, routing conventions, typed validation, code examples, and an automatically generated API reference. The [package README](packages/fastify-file-router/README.md) is also available offline.
+[Read the Docs to Learn More](https://fastify-file-router.ben3d.ca/) for getting started, routing conventions, typed validation, code examples, and an automatically generated API reference. The [package README](packages/fastify-file-router/README.md) is also available offline.
 
 ## Development
 
