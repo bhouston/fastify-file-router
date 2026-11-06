@@ -26,6 +26,8 @@ type TypedRouteHandler<T extends FastifySchema> = (
 
 /**
  * Route module returned by defineRoute
+ *
+ * @typeParam T - The Fastify schema type of the route.
  */
 export interface DefinedRoute<T extends FastifySchema> {
   /** The Fastify schema passed to {@link defineRoute}, unchanged. */
@@ -40,6 +42,8 @@ export interface DefinedRoute<T extends FastifySchema> {
  *
  * @typeParam T - The Fastify schema; JSON Schemas declared `as const` are converted to TypeScript types.
  * @param route - The route's `schema` and `handler`.
+ * @param route.schema - Fastify schema; declare JSON Schemas `as const` so request types can be inferred.
+ * @param route.handler - Request handler; `request.params`, `body`, `query` and `headers` are typed from `schema`.
  * @returns The same route object, to be exported as `route` from a route file.
  * @example
  * ```typescript
