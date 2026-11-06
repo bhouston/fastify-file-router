@@ -94,6 +94,8 @@ type TypedZodRouteHandler<T extends ZodRouteSchema> = (
 
 /**
  * Route module returned by defineRouteZod
+ *
+ * @typeParam T - The route schema type, mixing Zod and JSON Schema per field.
  */
 export interface DefinedZodRoute<T extends ZodRouteSchema> {
   /**
@@ -101,13 +103,20 @@ export interface DefinedZodRoute<T extends ZodRouteSchema> {
    * metadata keeps the original Zod schemas so the plugin can parse requests at runtime.
    */
   schema: FastifySchema & {
+    /** The original Zod schemas, kept for runtime validation. Present only when at least one field uses Zod. */
     __zodSchemas?: Partial<{
+      /** Zod schema for the path parameters. */
       params?: z.ZodTypeAny;
+      /** Zod schema for the query string. */
       querystring?: z.ZodTypeAny;
+      /** Zod schema for the request body. */
       body?: z.ZodTypeAny;
+      /** Zod schema for the request headers. */
       headers?: z.ZodTypeAny;
+      /** Zod response schemas keyed by status code. */
       response?: Record<string | number, z.ZodTypeAny>;
     }>;
+    /** Records whether each field was supplied as a Zod or JSON Schema. */
     __schemaTypes?: SchemaTypeIndicators;
   };
   /** The request handler, typed from the Zod and JSON Schemas in `schema`. */
@@ -175,6 +184,9 @@ export function formatJsonSchemaError(
  *
  * @typeParam T - The route schema, mixing Zod and JSON Schema per field.
  * @param route - The route's `schema` and `handler`.
+ * @param route.schema - Zod and/or JSON Schemas for `params`, `querystring`, `body`, `headers` and `response`,
+ * plus any other Fastify schema metadata, which is passed through unchanged.
+ * @param route.handler - Request handler; request types are inferred from `schema`.
  * @returns The route with a Fastify-compatible `schema`, to be exported as `route` from a route file.
  *
  * @example

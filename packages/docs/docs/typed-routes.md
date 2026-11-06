@@ -133,3 +133,5 @@ export const route = defineRoute({
 ```
 
 Metadata is passed through to Fastify for plugins that understand it. Use `satisfies` instead of widening the entire schema to `FastifySchema`, which can lose the literals needed for request inference.
+
+`satisfies` checks that your schema conforms to the extended type, keeps inference working for `request.params`, `request.body`, `request.query` and `request.headers`, and reports a TypeScript error if the schema does not match. The generic form `defineRoute<DocumentedSchema>()` also works, but may need explicit type assertions on the schema object to preserve request inference.

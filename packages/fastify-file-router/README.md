@@ -11,75 +11,32 @@
 
 > Register Fastify routes from filenames and directories, fully typed.
 
-- 📁 File-Based Routes
-- 🔀 Next.js or Remix Conventions
-- 🛡️ Typed Request Handlers
-- ✅ Zod and JSON Schema
-- 🧩 Optional Parameter Suffixes
-- ⏱️ Startup Profiling
+A Fastify plugin inspired by the file-based routers in Next.js and Remix. Specify your server routes using filenames or nested directories, and define each route with `defineRoute()` or `defineRouteZod()` for type-safe params, query, body, and headers. Supports JavaScript and TypeScript on Node 22+ and Fastify 5.
 
-A Fastify plugin inspired by the file-based routers in Next.js and Remix. Specify all of your server routes using filenames or a combination of filenames and nested directories, and define each route with `defineRoute()` or `defineRouteZod()` for type-safe params, query, body, and headers.
-
-Supports both JavaScript and TypeScript (on Node 22+).
-
-[Read the Docs to Learn More](https://fastify-file-router.ben3d.ca/).
+**[Read the documentation](https://fastify-file-router.ben3d.ca)** for guides, examples, and the full API reference.
 
 ## Installation
 
-_NOTE: This is an ESM-only package._
+_NOTE: This is an ESM-only package._ `fastify`, `zod` 4, and `ajv` 8 are peer dependencies.
 
 ```sh
-pnpm add fastify-file-router
+pnpm add fastify fastify-file-router ajv zod
 ```
 
 ## Example
 
-You register the plugin using its defaults or by specifying [additional options](#plugin-options):
+Register the plugin; it discovers route files in `./routes` or `./src/routes` by default:
 
 ```ts
+import Fastify from 'fastify';
+import { fastifyFileRouter } from 'fastify-file-router';
+
 const fastify = Fastify();
-
-fastify.register(fastifyFileRouter);
+await fastify.register(fastifyFileRouter);
+await fastify.listen({ port: 3000 });
 ```
 
-You can use any combination of file names and directories. We support either [NextJS](https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes) or [Remix](https://remix.run/docs/en/main/file-conventions/routes) conventions for interpreting filenames and directories.
-
-### File and directory layout
-
-```
-/routes
-├── (auth)  // a route group, ignored by router, but useful for semantic grouping
-│   ├── login
-│   │   └── get.ts      → GET /login
-│   └── signup
-│       └── get.ts      → GET /signup
-├── api
-│   ├── files
-│   │   ├── $id.get.ts // named parameter id, Remix-style
-│   │   └── hashes.$.get.ts // wildcard, *, parameter, Remix-style
-│   ├── health
-│   │   ├── get.test.ts // ignored because it matches a pattern in exclude list
-│   │   └── get.ts
-│   └── users
-│       └── post.ts
-└── api.users.$id.get.ts // named parameter id, Remix-style
-```
-
-Inside each route handler file, use the `defineRoute()` helper to define your routes. This ensures full type safety for your request parameters, body, querystring, and headers based on the schemas you define.
-
-**Simple Route (`routes/api/health/get.ts`)**
-
-```ts
-import { defineRoute } from 'fastify-file-router';
-
-export const route = defineRoute({
-  handler: async (request, reply) => {
-    reply.status(204).send();
-  },
-});
-```
-
-**Route with Parameters (`routes/api.users.$id.get.ts`)**
+Then export a typed route from a file named for its URL and method, such as `routes/api.users.$id.get.ts`:
 
 ```ts
 import { defineRoute } from 'fastify-file-router';
@@ -88,375 +45,28 @@ export const route = defineRoute({
   schema: {
     params: {
       type: 'object',
-      properties: {
-        id: { type: 'string' },
-      },
+      properties: { id: { type: 'string' } },
       required: ['id'],
     } as const,
   },
   handler: async (request, reply) => {
     // request.params.id is correctly typed as string
-    const { id } = request.params;
-
-    reply.status(200).send({
-      id,
-      name: 'John Doe',
-      email: 'john.doe@microsoft.com',
-    });
+    reply.status(200).send({ id: request.params.id });
   },
 });
 ```
 
-**Route with Request Body (`routes/api/users/post.ts`)**
-
-```ts
-import { defineRoute } from 'fastify-file-router';
-
-export const route = defineRoute({
-  schema: {
-    body: {
-      type: 'object',
-      properties: {
-        email: { type: 'string' },
-        password: { type: 'string' },
-      },
-      required: ['email', 'password'],
-    } as const,
-  },
-  handler: async (request, reply) => {
-    // request.body.email and request.body.password are correctly typed
-    const { email, password } = request.body;
-
-    reply.status(201).send({ message: 'User created successfully' });
-  },
-});
-```
-
-The above will result in these routes being registered:
-
-```
-GET /login
-GET /signup
-GET /api/files/:id
-GET /api/files/hashes/*
-GET /api/health
-POST /api/users
-GET /api/users/:id
-```
-
-## Using Zod Schemas
-
-You can use [Zod](https://zod.dev) schemas directly with `defineRouteZod`, which automatically extracts TypeScript types from Zod schemas using `z.infer` and uses the Zod schemas directly for runtime validation. The Zod schemas are also converted to JSON Schema, but these conversions are **only used for documentation purposes** (such as OpenAPI/Swagger), not for validation. This means you get the full power and better error messages of Zod validation, while still having proper API documentation. This is the recommended approach when using Zod.
-
-**Route with Zod Schemas (`routes/api/users/$id.patch.ts`)**
-
-```ts
-import { defineRouteZod } from 'fastify-file-router';
-import { z } from 'zod';
-
-export const route = defineRouteZod({
-  schema: {
-    params: z.object({
-      id: z.string().min(1, 'ID is required'),
-    }),
-    querystring: z.object({
-      include: z.enum(['profile', 'settings']).optional(),
-      fields: z.string().optional(),
-    }),
-    body: z.object({
-      name: z.string().min(1, 'Name is required').optional(),
-      email: z.email('Invalid email format').optional(),
-      age: z.number().int().min(0).max(150).optional(),
-    }),
-  },
-  handler: async (request, reply) => {
-    // All types are automatically inferred from the Zod schemas!
-    // request.params.id is typed as string
-    // request.query.include is typed as 'profile' | 'settings' | undefined
-    // request.body.name, email, age are correctly typed
-    const { id } = request.params;
-    const { include, fields } = request.query;
-    const { name, email, age } = request.body;
-
-    // Type inference verification: these operations prove types are correctly inferred
-    const idUpper = id.toUpperCase(); // id is string
-    if (include === 'profile') {
-      // TypeScript knows include is 'profile' here
-    }
-    const nameUpper = name?.toUpperCase(); // name is string | undefined
-    const ageNextYear = age !== undefined ? age + 1 : undefined; // age is number | undefined
-
-    reply.status(200).send({
-      id,
-      name: name ?? 'John Doe',
-      email: email ?? 'john.doe@example.com',
-      age: age ?? 30,
-      included: include,
-      fields,
-    });
-  },
-});
-```
-
-### Mixing Zod and JSON Schema
-
-`defineRouteZod` is an enhanced version of `defineRoute` that allows you to mix Zod schemas and JSON Schema within a single route definition. This gives you the flexibility to use the best validation approach for each field while maintaining full type safety.
-
-**Route with Mixed Schemas (`routes/api/users/$id.put.ts`)**
-
-```ts
-import { defineRouteZod } from 'fastify-file-router';
-import { z } from 'zod';
-
-export const route = defineRouteZod({
-  schema: {
-    // Use Zod for complex validation
-    params: z.object({
-      id: z.string().uuid('ID must be a valid UUID'),
-    }),
-    // Use JSON Schema for simple validation
-    querystring: {
-      type: 'object',
-      properties: {
-        include: { type: 'string', enum: ['profile', 'settings'] },
-      },
-    } as const,
-    // Use Zod for body validation
-    body: z.object({
-      name: z.string().min(1).optional(),
-      email: z.email().optional(),
-    }),
-    // Use JSON Schema for headers
-    headers: {
-      type: 'object',
-      properties: {
-        'x-api-key': { type: 'string' },
-      },
-      required: ['x-api-key'],
-    } as const,
-    // Mix response schemas too
-    response: {
-      200: z.object({ id: z.string(), name: z.string() }), // Zod
-      400: {
-        type: 'object',
-        properties: { error: { type: 'string' } },
-        required: ['error'],
-      } as const, // JSON Schema
-    },
-  },
-  handler: async (request, reply) => {
-    // Types are correctly inferred from both schema types!
-    // request.params.id is typed as string (from Zod)
-    // request.query.include is typed correctly (from JSON Schema)
-    // request.body.name and email are typed (from Zod)
-    const { id } = request.params;
-    const { include } = request.query;
-    const { name, email } = request.body;
-
-    reply.status(200).send({ id, name, email, included: include });
-  },
-});
-```
-
-When using mixed schemas, both Zod and JSON Schema fields are validated in the `preValidation` hook for consistent error handling. Type inference works seamlessly, extracting types from Zod schemas using `z.infer` and from JSON Schema using `FromSchema`.
-
-## Custom Schema Types
-
-When using Fastify plugins that extend the schema with additional properties (such as OpenAPI/Swagger plugins), you can use `defineRoute` with a custom schema type that extends `FastifySchema`. This allows you to add plugin-specific metadata while maintaining full type safety.
-
-**Example: Using OpenAPI Schema Extensions**
-
-First, define your extended schema type:
-
-```ts
-import type { FastifySchema } from 'fastify';
-
-export interface OpenAPIFastifySchema extends FastifySchema {
-  description?: string;
-  summary?: string;
-  tags?: string[];
-  operationId?: string;
-  security?: Array<Record<string, string[]>>;
-}
-```
-
-Then use it with `defineRoute` using the `satisfies` operator to ensure type safety while preserving inference:
-
-```ts
-import { defineRoute } from 'fastify-file-router';
-import type { OpenAPIFastifySchema } from '../types/OpenAPIFastifySchema.js';
-
-const paramsSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string' },
-  },
-  required: ['id'],
-} as const;
-
-const bodySchema = {
-  type: 'object',
-  properties: {
-    name: { type: 'string' },
-    email: { type: 'string', format: 'email' },
-  },
-  required: ['name', 'email'],
-} as const;
-
-export const route = defineRoute({
-  schema: {
-    description: 'Update a user by ID. Updates the user name and/or email.',
-    summary: 'Update user',
-    tags: ['users'],
-    operationId: 'update-user',
-    security: [{ jwtToken: [] }, { secretToken: [] }],
-    params: paramsSchema,
-    body: bodySchema,
-    response: {
-      200: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          name: { type: 'string' },
-          email: { type: 'string' },
-        },
-      },
-      404: {
-        type: 'object',
-        properties: {
-          error: { type: 'string' },
-          message: { type: 'string' },
-        },
-      },
-    },
-  } satisfies OpenAPIFastifySchema,
-  handler: async (request, reply) => {
-    // request.params.id, request.body.name, and request.body.email are all correctly typed
-    const { id } = request.params;
-    const { name, email } = request.body;
-
-    reply.status(200).send({ id, name, email });
-  },
-});
-```
-
-Using `satisfies OpenAPIFastifySchema` ensures that:
-
-- Your schema conforms to the extended schema type (including OpenAPI properties)
-- Type inference works correctly for `request.params`, `request.body`, `request.query`, and `request.headers`
-- You get full IntelliSense support for both standard Fastify schema properties and your custom extensions
-- TypeScript will error if your schema doesn't match the extended type
-
-**Alternative: Using Generic Type Parameter**
-
-You can also use the generic type parameter syntax `defineRoute<OpenAPIFastifySchema>()`, but note that this may require explicit type assertions for the schema object to preserve type inference for request parameters.
-
-## Plugin Options
-
-This plugin supports the following customizable options.
-
-**mount**
-
-- Specifies where the routes should be mounted on the server.
-- Default: `"/"`
-
-**routesDirs**
-
-- An array of local directories where the routes are located relative to the build root folder.
-- Default: `["./routes", "./src/routes"]`
-
-**buildRoot**
-
-- The root folder of the source code that should be loaded. If you are transpiling your source code, you should set this to the build output directory, e.g., dist or build.
-- Default: `"."` (current working directory, assuming no transpilation)
-
-**extensions**
-
-- An array of file extensions for the route files. Files without matching extensions are ignored
-- Default: `[".js", ".ts", ".jsx", ".tsx"]`
-
-**exclude**
-
-- An array of regexs which if matched against a filename or directory, lead it to being ignored/skipped over.
-- Default: `[ /^[\.|_].*/, /\.(test|spec)\.[jt]s$/, /__(test|spec)__/, /\.d\.ts$/ ]`
-
-**convention**
-
-- The file/folder naming convention to use, can be either Remix or NextJS style.
-- Default: `"remix"`
-
-**logLevel**
-
-- The verbosity level for the plugin.
-- Default: `"info"`
-
-**logRoutes**
-
-- Output the routes being registered and from which files.
-- Default: `false`
-
-**maxConcurrentTasks**
-
-- Maximum number of route-loading tasks that may run concurrently.
-- A task can be either scanning a directory or importing/registering a route file.
-- Lower values can reduce startup CPU/I/O spikes; higher values can improve throughput on larger projects.
-- Default: `64`
-
-**profile**
-
-- Optional startup profiling logs for route loading performance.
-- Default: disabled
-
-`profile.enabled`
-
-- Enables startup profiling logs.
-- Logs include total plugin startup timing and a slow-route summary.
-- Default: `false`
-
-`profile.logIndividualRoutes`
-
-- Logs timing for every route file (in addition to the summary).
-- Useful for identifying expensive route module initialization.
-- Default: `false`
-
-`profile.slowestRoutesCount`
-
-- Number of slowest route files included in the startup summary.
-- Default: `10`
-
-**zodResponseValidation**
-
-- Whether to enable validation of Zod response schemas. When enabled, responses defined with Zod schemas in `defineRouteZod` will be validated against their schemas. If validation fails, a 500 error is returned.
-- Note: This only validates Zod response schemas. For JSON Schema response validation, register the `@fastify/response-validation` plugin separately.
-- Default: `false`
-
-### Profiling example
-
-```ts
-fastify.register(fastifyFileRouter, {
-  maxConcurrentTasks: 32,
-  profile: {
-    enabled: true,
-    slowestRoutesCount: 15,
-    logIndividualRoutes: false,
-  },
-});
-```
-
-Example profile logs:
-
-```txt
-[fastify-file-router profile] loaded 218 routes from 47 directories in 624.11ms (import 412.32ms, prepare 178.09ms, register 8.47ms)
-[fastify-file-router profile] slow route GET /api/reporting/monthly total=83.21ms import=79.58ms prepare=3.44ms register=0.03ms file=/app/routes/api/reporting/monthly.get.ts
-```
-
-## Optional Parameter Suffixes
-
-A Remix-style folder named `$assetName?[@version]` makes an `@version` suffix optional. Put `[.]webp.get.ts` inside it to match both `/chair.webp` and `/chair@1.2.3.webp`; handlers receive separate `assetName` and optional `version` parameters. Labels such as `draft` are accepted too. Declare `version` optional in your parameter schema. Query parameters remain unchanged.
-
-Flat filenames (`$assetName?[@version][.]webp.get.ts`) and the Next-style equivalent (`[assetName]?[@version]`) also work. The separator can be `@`, `.`, `-`, `_`, or `~`, and is reserved within both values. Empty or repeated separators do not match. Parameter names must be distinct identifiers; `?[@$version]` is also accepted. Each URL segment supports one optional suffix block, and blocks on different segments expand independently.
-
-Each variant registers a concrete route. The all-suffixes-present variant keeps the declared `operationId`; other variants append `-optional-1`, `-optional-2`, and so on. Filenames containing `?` require macOS/Linux or another filesystem that permits that character; Windows filenames do not. See the [routing guide](https://fastify-file-router.ben3d.ca/docs/routing#optional-parameter-suffixes) for examples.
+This registers `GET /api/users/:id`.
+
+## Features
+
+- [File-based routes](https://fastify-file-router.ben3d.ca/docs/getting-started/): filenames and directories become URLs and HTTP methods, with route groups and wildcards.
+- [Next.js or Remix conventions](https://fastify-file-router.ben3d.ca/docs/routing/): choose `$id` or `[id]` parameter syntax.
+- [Typed request handlers](https://fastify-file-router.ben3d.ca/docs/typed-routes/): `params`, `body`, `query`, and `headers` inferred from JSON Schema.
+- [Zod and JSON Schema](https://fastify-file-router.ben3d.ca/docs/typed-routes/#zod): use either, or mix them in one route, with optional Zod response validation.
+- [Optional parameter suffixes](https://fastify-file-router.ben3d.ca/docs/routing/#optional-parameter-suffixes): one file can serve `/chair.webp` and `/chair@1.2.3.webp`.
+- [Startup profiling and options](https://fastify-file-router.ben3d.ca/docs/examples/#inspect-route-loading): measure route loading; every option is in the [API reference](https://fastify-file-router.ben3d.ca/docs/api/).
+- [Compiled output](https://fastify-file-router.ben3d.ca/docs/getting-started/#deploy-compiled-typescript): point `buildRoot` at your build directory.
 
 ## Releases
 

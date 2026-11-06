@@ -1,7 +1,12 @@
 import type { FastifyReply, FastifyRequest, FastifySchema } from 'fastify';
 import type { DefinedRoute } from './defineRoute.js';
 
-/** Handler signature for the legacy default-export route pattern. */
+/**
+ * Handler signature for the legacy default-export route pattern.
+ *
+ * @param request - The incoming Fastify request.
+ * @param reply - The Fastify reply used to send the response.
+ */
 export type RouteHandler = (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
 
 /** Fastify schema for the legacy `schema` export. */
@@ -16,9 +21,13 @@ export type RouteSchema = FastifySchema;
  * @typeParam Headers - Type used for the `response` field.
  */
 export type TypedRouteSchema<Query = object, Body = object, Params = object, Headers = object> = {
+  /** Type of the query string. */
   querystring?: Query;
+  /** Type of the request body. */
   body?: Body;
+  /** Type of the path parameters. */
   params?: Params;
+  /** Type of the response. */
   response?: Headers;
 };
 

@@ -55,6 +55,8 @@ The `exclude` option replaces the defaults. Include any patterns you still need 
 
 ## Mount an API prefix
 
+Every plugin option, with its default, is listed in the [API reference](/docs/api/#fastifyfilerouteroptions).
+
 ```ts
 await app.register(fastifyFileRouter, {
   mount: '/api/v1',
