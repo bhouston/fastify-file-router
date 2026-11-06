@@ -1,23 +1,35 @@
+<p align="center">
+  <a href="https://npmjs.com/package/fastify-file-router"><img src="https://img.shields.io/npm/v/fastify-file-router.svg" alt="npm package"></a>
+  <a href="https://www.npmtrends.com/fastify-file-router"><img src="https://img.shields.io/npm/dw/fastify-file-router.svg" alt="npm downloads"></a>
+  <a href="https://codecov.io/gh/bhouston/fastify-file-router"><img src="https://codecov.io/gh/bhouston/fastify-file-router/branch/main/graph/badge.svg" alt="coverage"></a>
+  <a href="https://discord.gg/fwupDN493R"><img src="https://img.shields.io/badge/chat-discord-blue?style=flat&logo=discord" alt="discord chat"></a>
+  <a href="https://bhouston.github.io/fastify-file-router/"><img src="https://img.shields.io/badge/docs-read-blue?style=flat" alt="documentation"></a>
+</p>
+<br/>
+
 # Fastify File Router
 
-[![NPM Package][npm]][npm-url]
-[![NPM Downloads][npm-downloads]][npmtrends-url]
-[![Tests][tests-badge]][tests-url]
-[![Coverage][coverage-badge]][coverage-url]
-[![Discord](https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white)][discord-url]
+> Register Fastify routes from filenames and directories, fully typed.
 
-This Fastify plugin is inspired by the file based routers in Next.js and Remix.
+- 📁 File-Based Routes
+- 🔀 Next.js or Remix Conventions
+- 🛡️ Typed Request Handlers
+- ✅ Zod and JSON Schema
+- 🧩 Optional Parameter Suffixes
+- ⏱️ Startup Profiling
 
-This allows you to specify all of your server routes using either filenames or a combination of filenames and nested directories.
+A Fastify plugin inspired by the file-based routers in Next.js and Remix. Specify all of your server routes using filenames or a combination of filenames and nested directories, and define each route with `defineRoute()` or `defineRouteZod()` for type-safe params, query, body, and headers.
 
-Supports both JavaScript and TypeScript (on Node 22+.)
+Supports both JavaScript and TypeScript (on Node 22+).
+
+[Read the Docs to Learn More](https://bhouston.github.io/fastify-file-router/).
 
 ## Installation
 
 _NOTE: This is an ESM-only package._
 
 ```sh
-pnpm install fastify-file-router
+pnpm add fastify-file-router
 ```
 
 ## Example
@@ -438,42 +450,26 @@ Example profile logs:
 [fastify-file-router profile] slow route GET /api/reporting/monthly total=83.21ms import=79.58ms prepare=3.44ms register=0.03ms file=/app/routes/api/reporting/monthly.get.ts
 ```
 
-## Development
-
-```bash
-pnpm install
-pnpm dev
-pnpm tsc # check and emit with TypeScript 7.1 beta
-pnpm build
-pnpm lint # oxlint
-pnpm lint:fix
-pnpm format # oxfmt
-pnpm test # vitest
-```
-
-## Author
-
-[Ben Houston](https://ben3d.ca), Sponsored by [Land of Assets](https://landofassets.com)
-
-[npm]: https://img.shields.io/npm/v/fastify-file-router
-[npm-url]: https://www.npmjs.com/package/fastify-file-router
-[npm-downloads]: https://img.shields.io/npm/dw/fastify-file-router
-[npmtrends-url]: https://www.npmtrends.com/fastify-file-router
-[tests-badge]: https://github.com/bhouston/fastify-file-router/actions/workflows/ci.yml/badge.svg
-[tests-url]: https://github.com/bhouston/fastify-file-router/actions/workflows/ci.yml
-[coverage-badge]: https://codecov.io/gh/bhouston/fastify-file-router/branch/main/graph/badge.svg
-[coverage-url]: https://codecov.io/gh/bhouston/fastify-file-router
-[discord-url]: https://discord.gg/fwupDN493R
-
-## Contributing and releases
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the issue → branch → PR workflow and release setup, [GitHub Releases](https://github.com/bhouston/fastify-file-router/releases) for changes, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
-Full guides, examples, and API reference: **[Fastify File Router documentation](https://bhouston.github.io/fastify-file-router/)**.
-
-### Optional parameter suffixes
+## Optional Parameter Suffixes
 
 A Remix-style folder named `$assetName?[@version]` makes an `@version` suffix optional. Put `[.]webp.get.ts` inside it to match both `/chair.webp` and `/chair@1.2.3.webp`; handlers receive separate `assetName` and optional `version` parameters. Labels such as `draft` are accepted too. Declare `version` optional in your parameter schema. Query parameters remain unchanged.
 
 Flat filenames (`$assetName?[@version][.]webp.get.ts`) and the Next-style equivalent (`[assetName]?[@version]`) also work. The separator can be `@`, `.`, `-`, `_`, or `~`, and is reserved within both values. Empty or repeated separators do not match. Parameter names must be distinct identifiers; `?[@$version]` is also accepted. Each URL segment supports one optional suffix block, and blocks on different segments expand independently.
 
 Each variant registers a concrete route. The all-suffixes-present variant keeps the declared `operationId`; other variants append `-optional-1`, `-optional-2`, and so on. Filenames containing `?` require macOS/Linux or another filesystem that permits that character; Windows filenames do not. See the [routing guide](https://bhouston.github.io/fastify-file-router/docs/routing#optional-parameter-suffixes) for examples.
+
+## Releases
+
+See [GitHub Releases](https://github.com/bhouston/fastify-file-router/releases) for changes and [SECURITY.md](https://github.com/bhouston/fastify-file-router/blob/main/SECURITY.md) for private vulnerability reports.
+
+## Contribution
+
+See [Contributing Guide](https://github.com/bhouston/fastify-file-router/blob/main/CONTRIBUTING.md).
+
+## License
+
+MIT
+
+## Author
+
+[Ben Houston](https://ben3d.ca), Sponsored by [Land of Assets](https://landofassets.com).
