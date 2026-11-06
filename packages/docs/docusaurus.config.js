@@ -72,6 +72,13 @@ const config = {
         { to: '/docs/examples', label: 'Examples', position: 'left' },
         { to: '/docs/api', label: 'API reference', position: 'left' },
         {
+          href: 'https://www.npmjs.com/package/fastify-file-router',
+          html: '<span class="navbar-npm-icon" aria-hidden="true"></span>',
+          'aria-label': 'npm package',
+          title: 'npm package',
+          position: 'right',
+        },
+        {
           href: 'https://github.com/bhouston/fastify-file-router',
           html: '<span class="navbar-github-icon" aria-hidden="true"></span>',
           'aria-label': 'GitHub repository',
